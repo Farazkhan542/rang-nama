@@ -113,16 +113,35 @@ else:
 !du -sh {CKPTS}/ 2>/dev/null || true
 
 # %%
-# Your own code. On Kaggle attach the repo as a dataset; on Colab clone it.
-if IS_COLAB:
-    !git clone -q https://github.com/YOUR_USERNAME/clothing.git /content/fabric-advisor || echo "already cloned"
-    CODE = Path("/content/fabric-advisor/src")
-else:
+# The fabric_advisor package. On Kaggle: attach dist/fabric-advisor.zip as a
+# private dataset named "fabric-advisor" (Add Input -> Datasets -> your upload).
+# Nothing needs to be public.
+if IS_KAGGLE:
     CODE = Path("/kaggle/input/fabric-advisor/src")
+else:
+    # Colab cannot clone a private repo without a credential, and putting a
+    # token in a notebook cell is how tokens leak. Upload the same zip to Drive
+    # and unzip it instead.
+    ZIP = Path("/content/drive/MyDrive/fabric-advisor.zip")
+    if ZIP.exists():
+        !unzip -oq {ZIP} -d /content/fabric-advisor
+        CODE = Path("/content/fabric-advisor/src")
+    else:
+        raise SystemExit(
+            f"Upload dist/fabric-advisor.zip to Drive at {ZIP}, or make the repo "
+            "public and clone it here."
+        )
 
 !pip install -q numpy scipy pillow
+
+assert (CODE / "fabric_advisor" / "render" / "flatlay.py").exists(), (
+    f"fabric_advisor not found under {CODE}. On Kaggle, check the dataset is "
+    "attached and that the zip contains a top-level src/ folder."
+)
 sys.path.insert(0, str(CODE))
-print("code from", CODE)
+
+from fabric_advisor.render.flatlay import synthetic_template  # noqa: F401
+print("code loaded from", CODE)
 
 # %% [markdown]
 # ## 2. Build kurta flat-lays from fabric prints

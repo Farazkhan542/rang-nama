@@ -36,6 +36,9 @@ out/
 !data/fixtures/contact-sheet.png
 !data/fixtures/frame-comparison.png
 
+# Build output — regenerate with scripts/, don't version.
+dist/
+
 # Model weights. Tens of gigabytes; fetch them, don't version them.
 ckpts/
 *.pth
