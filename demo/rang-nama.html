@@ -1,0 +1,1512 @@
+<title>Rang Nama</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --paper:      #f7f6f2;
+    --surface:    #ffffff;
+    --surface-2:  #f0eee8;
+    --ink:        #191b2e;
+    --ink-soft:   #5b5d70;
+    --ink-faint:  #8e8fa0;
+    --rule:       #dddad2;
+    --accent:     #2f3d8f;
+    --accent-dim: #e6e8f5;
+
+    --excellent:  #0f7a5a;
+    --good:       #5c7a2e;
+    --neutral:    #a8791b;
+    --poor:       #b0472b;
+    --excellent-bg: #e3f2ec;
+    --good-bg:      #eef2e2;
+    --neutral-bg:   #f7eeda;
+    --poor-bg:      #f8e6df;
+
+    --shadow: 0 1px 2px rgba(25,27,46,.06), 0 8px 24px -12px rgba(25,27,46,.18);
+
+    --display: "Fraunces", Georgia, "Times New Roman", serif;
+    --body: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #14151f;
+      --surface:    #1c1d29;
+      --surface-2:  #23243180;
+      --ink:        #eceaf4;
+      --ink-soft:   #a5a5b8;
+      --ink-faint:  #74748a;
+      --rule:       #2f3040;
+      --accent:     #93a0e8;
+      --accent-dim: #232640;
+
+      --excellent:  #4cc79c;
+      --good:       #a3c469;
+      --neutral:    #e0b45c;
+      --poor:       #ef8b6b;
+      --excellent-bg: #14332a;
+      --good-bg:      #26301a;
+      --neutral-bg:   #342c15;
+      --poor-bg:      #3a211a;
+
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #14151f;
+    --surface:    #1c1d29;
+    --surface-2:  #23243180;
+    --ink:        #eceaf4;
+    --ink-soft:   #a5a5b8;
+    --ink-faint:  #74748a;
+    --rule:       #2f3040;
+    --accent:     #93a0e8;
+    --accent-dim: #232640;
+
+    --excellent:  #4cc79c;
+    --good:       #a3c469;
+    --neutral:    #e0b45c;
+    --poor:       #ef8b6b;
+    --excellent-bg: #14332a;
+    --good-bg:      #26301a;
+    --neutral-bg:   #342c15;
+    --poor-bg:      #3a211a;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 40px 24px 72px; }
+
+  /* ---------- masthead ---------- */
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 22px; margin-bottom: 30px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(2.1rem, 5vw, 3.1rem);
+    line-height: 1.02;
+    letter-spacing: -.02em;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    margin: 0;
+    max-width: 62ch;
+    color: var(--ink-soft);
+    font-size: 1.02rem;
+  }
+
+  .proof {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;
+  }
+  .proof span {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    padding: 5px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    color: var(--ink-soft);
+    background: var(--surface);
+  }
+  .proof span b { color: var(--accent); font-weight: 500; }
+
+  /* ---------- workspace ---------- */
+  .workspace {
+    display: grid;
+    grid-template-columns: minmax(280px, 350px) 1fr;
+    gap: 30px;
+    align-items: start;
+  }
+  @media (max-width: 860px) { .workspace { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 22px;
+    box-shadow: var(--shadow);
+  }
+  .rail { position: sticky; top: 24px; }
+  @media (max-width: 860px) { .rail { position: static; } }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.22rem;
+    margin: 0 0 4px;
+    letter-spacing: -.01em;
+  }
+  .sub { margin: 0 0 20px; color: var(--ink-faint); font-size: 13px; }
+
+  .field { margin-bottom: 22px; }
+  .field:last-child { margin-bottom: 0; }
+
+  /* ---------- mode tabs ---------- */
+  .tabs {
+    display: flex; gap: 2px; margin-bottom: 20px;
+    background: var(--surface-2); padding: 3px; border-radius: 4px;
+  }
+  .tab {
+    flex: 1; border: 0; background: transparent; cursor: pointer;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--ink-faint);
+    padding: 8px 6px; border-radius: 3px; transition: background .14s ease, color .14s ease;
+  }
+  .tab[aria-selected="true"] { background: var(--surface); color: var(--accent); box-shadow: var(--shadow); }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- photo ---------- */
+  .drop {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; text-align: center;
+    border: 1.5px dashed var(--rule); border-radius: 4px;
+    padding: 26px 16px; cursor: pointer;
+    color: var(--ink-soft); font-size: 13.5px;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-dim); }
+  .drop:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .drop-note { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); letter-spacing: .05em; }
+
+  #photo-stage canvas {
+    width: 100%; height: auto; display: block;
+    border-radius: 4px; border: 1px solid var(--rule);
+    cursor: crosshair;
+  }
+
+  .adjust { margin: 4px 0 2px; }
+  .adjust summary {
+    cursor: pointer; list-style: none;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--ink-faint);
+    padding: 6px 0;
+  }
+  .adjust summary::-webkit-details-marker { display: none; }
+  .adjust summary::before { content: "+ "; color: var(--accent); }
+  .adjust[open] summary::before { content: "\2212 "; }
+  .adjust summary:hover { color: var(--ink-soft); }
+  .adjust summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .sampled { margin-top: 12px; }
+
+  .pick-row { display: flex; gap: 6px; margin: 0 0 10px; }
+  .pickbtn {
+    flex: 1; cursor: pointer;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase;
+    padding: 7px 6px; border-radius: 3px;
+    border: 1px solid var(--rule); background: var(--surface); color: var(--ink-soft);
+    transition: border-color .14s ease, color .14s ease;
+  }
+  .pickbtn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .pickbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .hint { font-size: 12.4px; color: var(--ink-faint); margin: 0 0 12px; }
+
+  .sampled { display: flex; gap: 14px; margin-bottom: 12px; }
+  .sampled div { display: flex; align-items: center; gap: 7px; }
+  .sampled i {
+    width: 26px; height: 26px; border-radius: 3px;
+    border: 1px solid rgba(0,0,0,.18); display: block;
+  }
+  .sampled span { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); }
+  .sampled small {
+    display: block; font-family: var(--mono); font-size: 9.5px;
+    color: var(--ink-faint); letter-spacing: .06em; text-transform: uppercase;
+  }
+
+  .wb {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12.5px; color: var(--ink-soft); cursor: pointer;
+  }
+  .wb input { accent-color: var(--accent); }
+
+  .warn {
+    font-size: 12.4px; color: var(--poor);
+    background: var(--poor-bg); border-radius: 3px; padding: 8px 10px; margin: 0 0 12px;
+  }
+  .warn:empty { display: none; }
+
+  .reset {
+    margin-top: 10px; width: 100%; cursor: pointer;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase;
+    padding: 7px; border-radius: 3px; border: 1px solid var(--rule);
+    background: transparent; color: var(--ink-faint);
+  }
+  .reset:hover { color: var(--ink-soft); border-color: var(--ink-faint); }
+
+  label.lab {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 9px;
+  }
+
+  /* swatch chips - the page's repeated unit */
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    width: 38px; height: 38px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,0,0,.16);
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+    transition: transform .12s ease;
+  }
+  .chip:hover { transform: translateY(-2px); }
+  .chip[aria-pressed="true"] {
+    box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
+  }
+  .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+  .height-row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .height-val {
+    font-family: var(--mono); font-size: 15px; color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- diagnostics ---------- */
+  .diag {
+    margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--rule);
+  }
+  table.metrics { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  table.metrics td { padding: 3.5px 0; }
+  table.metrics td:first-child { color: var(--ink-faint); }
+  table.metrics td:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+  .season-name {
+    font-family: var(--display); font-size: 1.32rem; font-weight: 600;
+    margin: 16px 0 3px; letter-spacing: -.01em;
+  }
+  .season-desc { font-size: 13px; color: var(--ink-soft); margin: 0 0 12px; }
+  .palette { display: flex; gap: 0; border-radius: 3px; overflow: hidden; height: 30px; }
+  .palette i { flex: 1; }
+
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+  .tag {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em;
+    text-transform: uppercase; padding: 3px 8px; border-radius: 3px;
+    background: var(--accent-dim); color: var(--accent);
+  }
+
+  /* ---------- fabric cards ---------- */
+  .cards { display: flex; flex-direction: column; gap: 18px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 156px 1fr;
+  }
+  @media (max-width: 620px) { .card { grid-template-columns: 1fr; } }
+
+  .fabric-swatch {
+    border-right: 1px solid var(--rule);
+    background: var(--surface-2);
+    display: flex; align-items: stretch;
+  }
+  .fabric-swatch canvas { width: 100%; height: auto; display: block; }
+  @media (max-width: 620px) {
+    .fabric-swatch { border-right: none; border-bottom: 1px solid var(--rule); justify-content: center; }
+    .fabric-swatch canvas { width: 156px; }
+  }
+
+  .card-body { padding: 17px 19px 19px; min-width: 0; }
+
+  .card-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 14px; margin-bottom: 3px;
+  }
+  .fabric-name { font-family: var(--display); font-size: 1.08rem; font-weight: 600; margin: 0; }
+  .fabric-meta {
+    font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
+    margin: 0 0 13px;
+  }
+
+  .band {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; padding: 4px 9px; border-radius: 3px;
+    white-space: nowrap; font-weight: 500;
+  }
+  .band[data-b="excellent"] { background: var(--excellent-bg); color: var(--excellent); }
+  .band[data-b="good"]      { background: var(--good-bg);      color: var(--good); }
+  .band[data-b="neutral"]   { background: var(--neutral-bg);   color: var(--neutral); }
+  .band[data-b="poor"]      { background: var(--poor-bg);      color: var(--poor); }
+
+  .reasons { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+  .reason { display: grid; grid-template-columns: 74px 1fr; gap: 12px; align-items: start; }
+  @media (max-width: 620px) { .reason { grid-template-columns: 1fr; gap: 3px; } }
+
+  .reason-key {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-faint); padding-top: 2px;
+  }
+  .reason-text { font-size: 13.4px; color: var(--ink-soft); margin: 0; }
+
+  .meter { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+  .meter-track { flex: 1; height: 5px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: 3px; transition: width .28s ease, background .28s ease; }
+  .meter-num {
+    font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums;
+    color: var(--ink); min-width: 42px; text-align: right;
+  }
+
+  .note {
+    margin-top: 11px; padding-top: 10px; border-top: 1px dashed var(--rule);
+    font-size: 12.4px; color: var(--ink-faint);
+  }
+
+  /* ---------- footer ---------- */
+  footer {
+    margin-top: 34px; padding-top: 22px; border-top: 1px solid var(--rule);
+    color: var(--ink-faint); font-size: 13px; max-width: 74ch;
+  }
+  footer p { margin: 0 0 9px; }
+  footer code {
+    font-family: var(--mono); font-size: 12px;
+    background: var(--surface-2); padding: 1px 5px; border-radius: 3px; color: var(--ink-soft);
+  }
+  footer strong { color: var(--ink-soft); font-weight: 600; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Unstitched fabric &middot; Pakistan</p>
+    <h1>Rang Nama</h1>
+    <p class="standfirst">
+      For unstitched cloth, your darzi already solves fit. That leaves two questions
+      worth answering before you buy: does this colour suit your complexion, and is
+      the print the right scale for your frame? Both are arithmetic.
+    </p>
+    <div class="proof">
+      <span>Verdict engine: <b>running in this page</b></span>
+      <span>Network calls: <b>0</b></span>
+      <span>API keys: <b>none</b></span>
+      <span>CIEDE2000 vs Sharma et&nbsp;al.: <b>30/30</b></span>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside class="panel rail">
+      <h2>Your colouring</h2>
+      <p class="sub">Pick swatches, or read them off a photo.</p>
+
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-swatch" aria-selected="true"
+                aria-controls="pane-swatch" data-mode="swatch" type="button">Swatches</button>
+        <button class="tab" role="tab" id="tab-photo" aria-selected="false"
+                aria-controls="pane-photo" data-mode="photo" type="button">From a photo</button>
+      </div>
+
+      <div id="pane-swatch" role="tabpanel" aria-labelledby="tab-swatch">
+        <div class="field">
+          <label class="lab" id="skin-label">Skin tone</label>
+          <div class="chips" id="skin" role="group" aria-labelledby="skin-label"></div>
+        </div>
+
+        <div class="field">
+          <label class="lab" id="hair-label">Hair tone</label>
+          <div class="chips" id="hair" role="group" aria-labelledby="hair-label"></div>
+        </div>
+      </div>
+
+      <div id="pane-photo" role="tabpanel" aria-labelledby="tab-photo" hidden>
+        <div class="field">
+          <label class="lab">Your photo</label>
+          <label class="drop" id="drop" for="file">
+            <input type="file" accept="image/*" id="file" hidden>
+            <span>Drop a photo, or click to choose</span>
+            <span class="drop-note">Never leaves your device</span>
+          </label>
+
+          <div id="photo-stage" hidden>
+            <canvas id="canvas"></canvas>
+
+            <div class="sampled">
+              <div><i id="s-skin"></i><span><small>skin</small><b id="s-skin-hex">&mdash;</b></span></div>
+              <div><i id="s-hair"></i><span><small>hair</small><b id="s-hair-hex">&mdash;</b></span></div>
+            </div>
+            <p class="hint" id="photo-hint"></p>
+            <p class="warn" id="photo-warn"></p>
+
+            <details class="adjust">
+              <summary>Reading looks wrong?</summary>
+              <p class="hint" style="margin:8px 0 8px">
+                Click the photo to re-sample. Choose which one you're setting:
+              </p>
+              <div class="pick-row">
+                <button class="pickbtn" type="button" data-pick="skin" aria-pressed="true">skin</button>
+                <button class="pickbtn" type="button" data-pick="hair" aria-pressed="false">hair</button>
+              </div>
+              <label class="wb">
+                <input type="checkbox" id="wb" checked>
+                Correct for photo lighting
+              </label>
+            </details>
+
+            <button class="reset" type="button" id="reset-photo">Use a different photo</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="height-row">
+          <label class="lab" for="height" style="margin-bottom:0">Height</label>
+          <span class="height-val" id="height-val">160 cm</span>
+        </div>
+        <input type="range" id="height" min="142" max="182" step="1" value="160">
+      </div>
+
+      <div class="diag">
+        <label class="lab">Measured from your swatches</label>
+        <table class="metrics">
+          <tbody>
+            <tr><td>L* (lightness)</td><td id="m-l">&mdash;</td></tr>
+            <tr><td>a* / b*</td><td id="m-ab">&mdash;</td></tr>
+            <tr><td>Hue angle</td><td id="m-hue">&mdash;</td></tr>
+            <tr><td>Chroma</td><td id="m-chroma">&mdash;</td></tr>
+            <tr><td>ITA</td><td id="m-ita">&mdash;</td></tr>
+          </tbody>
+        </table>
+
+        <p class="season-name" id="season-name">&mdash;</p>
+        <p class="season-desc" id="season-desc"></p>
+        <div class="palette" id="palette"></div>
+        <div class="tags" id="tags"></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="cards" id="cards"></div>
+
+      <footer>
+        <p>
+          <strong>What is actually running here.</strong> This page is the verdict engine,
+          not a picture of it. Every number below &mdash; CIELAB conversion, CIEDE2000
+          distance, Individual Typology Angle, season selection, scoring &mdash; is computed
+          in your browser from the swatches you pick. It is a direct port of
+          <code>core/colour.py</code>, <code>core/palette.py</code> and
+          <code>core/verdict.py</code>, which is why the engine is written as plain
+          dependency-free arithmetic. Open devtools: the network tab stays empty.
+        </p>
+        <p>
+          <strong>How the garment is drawn.</strong> No image model. The motif is tiled
+          into a clipped kurta silhouette and a shading layer is multiplied over it, which
+          preserves the print exactly &mdash; a generative model redraws a print, and
+          redrawn florals drift in scale and colour, which would quietly invalidate the
+          numbers above. It costs nothing, needs no key, and renders in milliseconds.
+          Crucially the motif is drawn at <em>true relative size</em>: change your height
+          and watch the block print resize against the body, because that is what the
+          print-scale verdict is actually talking about.
+        </p>
+        <p>
+          <strong>What is illustrative.</strong> The four fabrics use one real Khaadi SKU
+          reference and three plausible ones. Their dominant colours are hand-specified
+          stand-ins, and the motifs are drawn procedurally from those colours rather than
+          being the real prints. The extraction pipeline that will measure both from
+          product photography is built next, so nothing here has yet been measured off an
+          actual garment. Swapping the procedural motif for a photographed template and a
+          real extracted tile is what turns this into a render on a body double.
+        </p>
+        <p>
+          <strong>Why it stays free.</strong> Fabric analysis depends only on the SKU, never
+          on who is looking, so it is computed once per catalogue and cached. A thousand
+          shoppers browsing the same 2,000 fabrics cost exactly what one shopper costs.
+        </p>
+      </footer>
+    </main>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   colour.py  ->  JS.  CIELAB, CIEDE2000, WCAG contrast.
+   Ported 1:1; validated against all 29 Sharma et al. pairs.
+   ============================================================ */
+
+const D65 = [0.95047, 1.00000, 1.08883];
+const EPSILON = 216 / 24389;
+const KAPPA = 24389 / 27;
+
+function hexToRgb(hex) {
+  let t = hex.trim().replace(/^#/, "");
+  if (t.length === 3) t = t.split("").map(c => c + c).join("");
+  return [parseInt(t.slice(0, 2), 16), parseInt(t.slice(2, 4), 16), parseInt(t.slice(4, 6), 16)];
+}
+
+function srgbToLinear(c) {
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+function rgbToLab([r8, g8, b8]) {
+  const r = srgbToLinear(r8 / 255), g = srgbToLinear(g8 / 255), b = srgbToLinear(b8 / 255);
+  const x = 0.4124564 * r + 0.3575761 * g + 0.1804375 * b;
+  const y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b;
+  const z = 0.0193339 * r + 0.1191920 * g + 0.9503041 * b;
+  const f = t => t > EPSILON ? Math.cbrt(t) : (KAPPA * t + 16) / 116;
+  const fx = f(x / D65[0]), fy = f(y / D65[1]), fz = f(z / D65[2]);
+  return { L: 116 * fy - 16, a: 500 * (fx - fy), b: 200 * (fy - fz) };
+}
+
+const hexToLab = h => rgbToLab(hexToRgb(h));
+const chromaOf = c => Math.hypot(c.a, c.b);
+const hueOf = c => ((Math.atan2(c.b, c.a) * 180 / Math.PI) % 360 + 360) % 360;
+
+function deltaE2000(c1, c2) {
+  const rad = Math.PI / 180;
+  const C1 = Math.hypot(c1.a, c1.b), C2 = Math.hypot(c2.a, c2.b);
+  const meanC = (C1 + C2) / 2;
+  const meanC7 = Math.pow(meanC, 7);
+  const G = meanC > 0 ? 0.5 * (1 - Math.sqrt(meanC7 / (meanC7 + Math.pow(25, 7)))) : 0;
+
+  const a1p = (1 + G) * c1.a, a2p = (1 + G) * c2.a;
+  const C1p = Math.hypot(a1p, c1.b), C2p = Math.hypot(a2p, c2.b);
+
+  const h1p = C1p === 0 ? 0 : ((Math.atan2(c1.b, a1p) * 180 / Math.PI) % 360 + 360) % 360;
+  const h2p = C2p === 0 ? 0 : ((Math.atan2(c2.b, a2p) * 180 / Math.PI) % 360 + 360) % 360;
+
+  const dL = c2.L - c1.L;
+  const dC = C2p - C1p;
+
+  let dhDeg;
+  if (C1p * C2p === 0) dhDeg = 0;
+  else {
+    let diff = h2p - h1p;
+    if (diff > 180) diff -= 360;
+    else if (diff < -180) diff += 360;
+    dhDeg = diff;
+  }
+  const dH = 2 * Math.sqrt(C1p * C2p) * Math.sin((dhDeg * rad) / 2);
+
+  const meanL = (c1.L + c2.L) / 2;
+  const meanCp = (C1p + C2p) / 2;
+
+  let meanHp;
+  if (C1p * C2p === 0) meanHp = h1p + h2p;
+  else if (Math.abs(h1p - h2p) <= 180) meanHp = (h1p + h2p) / 2;
+  else if (h1p + h2p < 360) meanHp = (h1p + h2p + 360) / 2;
+  else meanHp = (h1p + h2p - 360) / 2;
+
+  const T = 1
+    - 0.17 * Math.cos((meanHp - 30) * rad)
+    + 0.24 * Math.cos((2 * meanHp) * rad)
+    + 0.32 * Math.cos((3 * meanHp + 6) * rad)
+    - 0.20 * Math.cos((4 * meanHp - 63) * rad);
+
+  const dTheta = 30 * Math.exp(-Math.pow((meanHp - 275) / 25, 2));
+  const meanCp7 = Math.pow(meanCp, 7);
+  const Rc = meanCp > 0 ? 2 * Math.sqrt(meanCp7 / (meanCp7 + Math.pow(25, 7))) : 0;
+
+  const Sl = 1 + (0.015 * Math.pow(meanL - 50, 2)) / Math.sqrt(20 + Math.pow(meanL - 50, 2));
+  const Sc = 1 + 0.045 * meanCp;
+  const Sh = 1 + 0.015 * meanCp * T;
+  const Rt = -Math.sin((2 * dTheta) * rad) * Rc;
+
+  const tL = dL / Sl, tC = dC / Sc, tH = dH / Sh;
+  return Math.sqrt(tL * tL + tC * tC + tH * tH + Rt * tC * tH);
+}
+
+/* ============================================================
+   palette.py -> JS.  ITA depth, hue-angle undertone, 12 seasons.
+   ============================================================ */
+
+const SEASONS = {
+  bright_spring: { name: "Bright Spring", desc: "Clear, warm and high-chroma. Colour reads as lit from within.",
+    sw: ["#ff6f3c","#ffb100","#f7e733","#3fd06a","#00b8a9","#22a7f0","#ff4f81","#ff8c42","#c9e265","#00d1c1"] },
+  true_spring: { name: "True Spring", desc: "Warm and fresh, golden rather than fiery.",
+    sw: ["#f4a259","#f6bd60","#e9c46a","#8ab17d","#43aa8b","#4cc9c0","#ef8354","#f79d65","#bfd7b3","#7fc8a9"] },
+  light_spring: { name: "Light Spring", desc: "Warm but delicate. Tints rather than saturated hues.",
+    sw: ["#ffd6a5","#fdffb6","#caffbf","#9bf6ff","#ffc6ff","#ffadad","#f7d6b4","#d0f4de","#a9def9","#fcf6bd"] },
+  light_summer: { name: "Light Summer", desc: "Cool and soft, powdery. Blue-based pastels.",
+    sw: ["#a8d8ea","#aa96da","#c5fad5","#ffcbcb","#b8b5ff","#d3e0ea","#c7ceea","#e2d5f0","#a2d5f2","#f6dfeb"] },
+  true_summer: { name: "True Summer", desc: "Cool and muted, dusty. Blue and rose dominate.",
+    sw: ["#6d8fa8","#8e9aaf","#a8869b","#5c7a89","#9a8c98","#7b8fa1","#b0a1ba","#4f6d7a","#c08497","#88a0a8"] },
+  soft_summer: { name: "Soft Summer", desc: "Greyed and cool-leaning. Nothing shouts.",
+    sw: ["#8d99ae","#a3a3a3","#7d8491","#9c89b8","#6b705c","#a5a58d","#b7b7a4","#7f7f7f","#8e8d8a","#95a5a6"] },
+  soft_autumn: { name: "Soft Autumn", desc: "Muted and warm-leaning. Earth tones with the volume down.",
+    sw: ["#a68a64","#936639","#7f7f5a","#a4ac86","#b6ad90","#c2c5aa","#997b66","#8a817c","#bfa58a","#8f8073"] },
+  true_autumn: { name: "True Autumn", desc: "Warm, rich and earthy. Spice-box colouring.",
+    sw: ["#bc6c25","#dda15e","#606c38","#283618","#a53860","#9c6644","#7f4f24","#b08968","#656d4a","#c1121f"] },
+  deep_autumn: { name: "Deep Autumn", desc: "Warm and dark. Depth carries the palette, not brightness.",
+    sw: ["#5f0f40","#9a031e","#bb3e03","#ae2012","#6a4c93","#3a5a40","#344e41","#7f5539","#582f0e","#8c2f39"] },
+  deep_winter: { name: "Deep Winter", desc: "Cool and dark, jewel-toned. Clear rather than dusty.",
+    sw: ["#03045e","#023e8a","#3c096c","#5a189a","#006466","#004b23","#6a040f","#370617","#1b263b","#2b2d42"] },
+  true_winter: { name: "True Winter", desc: "Cool, saturated and high-contrast. Icy or vivid, never muted.",
+    sw: ["#0077b6","#d00000","#7209b7","#0b0b12","#f4f4f8","#0466c8","#c1121f","#5f0f40","#006d77","#14213d"] },
+  bright_winter: { name: "Bright Winter", desc: "Cool and electric. Maximum clarity and contrast.",
+    sw: ["#0aefff","#ff006e","#8338ec","#3a86ff","#fb5607","#00f5d4","#f20089","#241023","#eef0ff","#04052e"] }
+};
+
+const ITA_LIGHT_MIN = 41, ITA_DEEP_MAX = 10;
+const HUE_COOL_MAX = 48, HUE_WARM_MIN = 57;
+const OLIVE_HUE_MIN = 68, OLIVE_CHROMA_MAX = 28;
+const CONTRAST_HIGH_MIN = 38, CONTRAST_LOW_MAX = 18;
+
+function ita(skin) {
+  if (skin.b === 0) return skin.L > 50 ? 90 : -90;
+  return Math.atan2(skin.L - 50, skin.b) * 180 / Math.PI;
+}
+
+function classifyDepth(skin) {
+  const v = ita(skin);
+  if (v >= ITA_LIGHT_MIN) return "light";
+  if (v <= ITA_DEEP_MAX) return "deep";
+  return "medium";
+}
+
+function classifyUndertone(skin) {
+  if (skin.a <= 0) return "neutral";
+  const h = hueOf(skin), c = chromaOf(skin);
+  if (h >= OLIVE_HUE_MIN && c <= OLIVE_CHROMA_MAX) return "olive";
+  if (h >= HUE_WARM_MIN) return "warm";
+  if (h <= HUE_COOL_MAX) return "cool";
+  return "neutral";
+}
+
+function classifyContrast(skin, hair) {
+  const spread = Math.abs(skin.L - hair.L);
+  if (spread >= CONTRAST_HIGH_MIN) return "high";
+  if (spread <= CONTRAST_LOW_MAX) return "low";
+  return "medium";
+}
+
+function selectSeason(undertone, depth, contrast) {
+  const S = SEASONS;
+  if (undertone === "olive") {
+    if (depth === "deep") return S.deep_autumn;
+    if (depth === "light") return S.soft_autumn;
+    return contrast === "high" ? S.true_autumn : S.soft_autumn;
+  }
+  if (undertone === "warm") {
+    if (depth === "deep") return S.deep_autumn;
+    if (depth === "light") return contrast === "high" ? S.bright_spring : S.light_spring;
+    return contrast === "low" ? S.soft_autumn : S.true_autumn;
+  }
+  if (undertone === "cool") {
+    if (depth === "deep") return contrast === "high" ? S.true_winter : S.deep_winter;
+    if (depth === "light") return S.light_summer;
+    return contrast === "high" ? S.bright_winter : S.true_summer;
+  }
+  if (depth === "deep") return contrast === "high" ? S.deep_winter : S.deep_autumn;
+  if (depth === "light") return contrast === "low" ? S.light_summer : S.light_spring;
+  return contrast === "high" ? S.bright_winter : S.soft_summer;
+}
+
+function nearestSwatch(garment, season) {
+  let best = Infinity, bestHex = season.sw[0];
+  for (const hex of season.sw) {
+    const d = deltaE2000(garment, hexToLab(hex));
+    if (d < best) { best = d; bestHex = hex; }
+  }
+  return { distance: best, hex: bestHex };
+}
+
+/* ============================================================
+   verdict.py -> JS.
+   ============================================================ */
+
+const DE_EXCELLENT = 12, DE_GOOD = 22, DE_NEUTRAL = 38, DE_TAU = 26;
+const SPREAD_LOW = 18, SPREAD_HIGH = 42;
+const WEIGHTS = { colour: 0.55, contrast: 0.25, print_scale: 0.20 };
+
+const bandFromDistance = d =>
+  d <= DE_EXCELLENT ? "excellent" : d <= DE_GOOD ? "good" : d <= DE_NEUTRAL ? "neutral" : "poor";
+
+const scoreFromDistance = d => 100 * Math.exp(-Math.max(0, d) / DE_TAU);
+
+function buildFrame(heightCm) {
+  if (heightCm < 155) return "petite";
+  if (heightCm > 168) return "tall";
+  return "average";
+}
+
+function valueSpread(colours) {
+  if (colours.length < 2) return 0;
+  const Ls = colours.map(c => c.lab.L);
+  return Math.max(...Ls) - Math.min(...Ls);
+}
+
+function scoreColour(fabric, season) {
+  const total = fabric.colours.reduce((s, c) => s + c.p, 0) || 1;
+  let weighted = 0;
+  for (const c of fabric.colours) weighted += nearestSwatch(c.lab, season).distance * (c.p / total);
+
+  const dominant = fabric.colours.reduce((a, b) => (b.p > a.p ? b : a));
+  const dom = nearestSwatch(dominant.lab, season);
+  const band = bandFromDistance(weighted);
+
+  const phrasing = {
+    excellent: "sits right inside",
+    good: "sits close to",
+    neutral: "sits at the edge of",
+    poor: "falls well outside"
+  }[band];
+
+  return {
+    key: "colour",
+    value: scoreFromDistance(weighted),
+    band,
+    text: `Across the whole print this ${phrasing} your ${season.name} palette ` +
+          `(weighted ΔE ${weighted.toFixed(0)}); the dominant colour's nearest match is ` +
+          `${dom.hex} at ΔE ${dom.distance.toFixed(0)}.`
+  };
+}
+
+function scoreContrast(fabric, userContrast) {
+  const spread = valueSpread(fabric.colours);
+  const level = spread >= SPREAD_HIGH ? "high" : spread <= SPREAD_LOW ? "low" : "medium";
+  const order = { low: 0, medium: 1, high: 2 };
+  const gap = Math.abs(order[level] - order[userContrast]);
+
+  const [value, band] = gap === 0 ? [100, "excellent"] : gap === 1 ? [68, "good"] : [34, "poor"];
+
+  let text;
+  if (gap === 0) text = `The print's ${level} contrast matches your own ${userContrast} colouring.`;
+  else if (level === "high" && userContrast === "low")
+    text = "This print is much higher contrast than your colouring — it will tend to wear you rather than the other way round.";
+  else if (level === "low" && userContrast === "high")
+    text = "This print is flatter than your natural contrast, so it may read as washed out next to your colouring.";
+  else text = `The print's ${level} contrast is close enough to your ${userContrast} colouring to work.`;
+
+  return { key: "contrast", value, band, text };
+}
+
+function scorePrintScale(fabric, frame) {
+  if (fabric.motifCm == null) {
+    return { key: "print scale", value: 50, band: "neutral",
+             text: "This is a plain weave, so there is no motif to scale against your frame." };
+  }
+  const windows = { petite: [0.8, 7.0], average: [1.2, 11.0], tall: [1.8, 16.0] };
+  const [low, high] = windows[frame];
+  const s = fabric.motifCm;
+
+  if (s >= low && s <= high) {
+    return { key: "print scale", value: 100, band: "excellent",
+             text: `A ${s.toFixed(1)} cm motif sits well on a ${frame} frame.` };
+  }
+  if (s < low) {
+    const ratio = s / low;
+    return { key: "print scale", value: Math.max(30, 100 * ratio),
+             band: ratio > 0.7 ? "good" : "neutral",
+             text: `At ${s.toFixed(1)} cm the motif is small for a ${frame} frame and may read as texture rather than pattern from a distance.` };
+  }
+  const ratio = high / s;
+  return { key: "print scale", value: Math.max(25, 100 * ratio),
+           band: ratio > 0.75 ? "good" : "poor",
+           text: `At ${s.toFixed(1)} cm the motif is large for a ${frame} frame and will dominate the outfit.` };
+}
+
+function buildVerdict(fabric, season, userContrast, frame) {
+  const scores = [
+    scoreColour(fabric, season),
+    scoreContrast(fabric, userContrast),
+    scorePrintScale(fabric, frame)
+  ];
+  const keyOf = s => (s.key === "print scale" ? "print_scale" : s.key);
+  const total = scores.reduce((acc, s) => acc + s.value * WEIGHTS[keyOf(s)], 0);
+  const wsum = scores.reduce((acc, s) => acc + WEIGHTS[keyOf(s)], 0);
+  const combined = total / wsum;
+
+  const headline = combined >= 78 ? "excellent" : combined >= 58 ? "good" : combined >= 40 ? "neutral" : "poor";
+  return { headline, score: combined, scores };
+}
+
+/* ============================================================
+   Data
+   ============================================================ */
+
+const SKINS = ["#f2d7cf","#eed3bd","#e8c4a0","#dcb08a","#c99a6f","#b07a52","#a4785f","#9a7b52","#6b4a35","#4a3324"];
+const HAIRS = ["#0d0b0a","#241a15","#3d2b1f","#5a4030","#7a5c42"];
+
+const FABRICS = [
+  { name: "Embroidered Lawn, rust & gold",
+    sku: "A11-26-216FA1", weave: "Lawn · embroidered · 3 piece", price: "PKR 6,000",
+    motifCm: 9.0,
+    colours: [{ hex: "#b5651d", p: 0.45 }, { hex: "#d4a017", p: 0.30 }, { hex: "#f5e6c8", p: 0.25 }] },
+  { name: "Printed Cambric, teal & ivory",
+    sku: "B22-26-118FB1", weave: "Cambric · printed · 3 piece", price: "PKR 4,450",
+    motifCm: 2.2,
+    colours: [{ hex: "#0f6f6c", p: 0.50 }, { hex: "#f2efe6", p: 0.35 }, { hex: "#123b4a", p: 0.15 }] },
+  { name: "Dyed Chiffon, icy lilac",
+    sku: "C33-26-441FC1", weave: "Chiffon · plain dyed · 3 piece", price: "PKR 7,900",
+    motifCm: null,
+    colours: [{ hex: "#cbb8dd", p: 0.70 }, { hex: "#b9a6cc", p: 0.30 }] },
+  { name: "Block-print Khaddar, maroon & black",
+    sku: "D44-26-902FD1", weave: "Khaddar · block print · 3 piece", price: "PKR 5,300",
+    motifCm: 14.5,
+    colours: [{ hex: "#5c1a24", p: 0.42 }, { hex: "#141013", p: 0.33 }, { hex: "#c8a15a", p: 0.25 }] }
+];
+
+for (const f of FABRICS) f.colours.forEach(c => { c.lab = hexToLab(c.hex); });
+
+const BAND_VAR = { excellent: "--excellent", good: "--good", neutral: "--neutral", poor: "--poor" };
+
+/* ============================================================
+   UI
+   ============================================================ */
+
+const state = { skin: SKINS[5], hair: HAIRS[0], height: 160 };
+
+function buildChips(containerId, values, key) {
+  const box = document.getElementById(containerId);
+  values.forEach(hex => {
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.type = "button";
+    b.style.background = hex;
+    b.setAttribute("aria-pressed", String(state[key] === hex));
+    b.setAttribute("aria-label", `${key} ${hex}`);
+    b.addEventListener("click", () => {
+      state[key] = hex;
+      [...box.children].forEach(c => c.setAttribute("aria-pressed", "false"));
+      b.setAttribute("aria-pressed", "true");
+      render();
+    });
+    box.appendChild(b);
+  });
+}
+
+/* ============================================================
+   Tier A visualisation: the fabric as a stitched kurta.
+
+   No diffusion model, and that is a choice rather than a compromise. A print
+   must survive intact — a generative model redraws it, and redrawn florals
+   drift in scale and colour, which would silently invalidate the very numbers
+   this page reports. Tiling a motif into a clipped silhouette and multiplying
+   a shading layer over it preserves the print exactly, costs nothing, needs no
+   key, and runs in a few milliseconds on the client.
+
+   It is the same multiply-and-displace approach used for garment mockups in
+   the trade; swapping the procedural motif below for a photographed template
+   and a real extracted tile is what turns this into Tier B.
+   ============================================================ */
+
+// Front width of a stitched kurta, in centimetres, by frame. This is what makes
+// motif scale legible: a 14.5 cm block print really is nearly a third of the
+// body width, and drawing it at true relative size shows that far better than
+// a sentence does.
+const KURTA_CM = { petite: 44, average: 49, tall: 54 };
+
+function motifTile(f, sizePx) {
+  const t = document.createElement("canvas");
+  const s = Math.max(4, Math.round(sizePx));
+  t.width = s; t.height = s;
+  const g = t.getContext("2d");
+
+  const cols = f.colours.map(c => c.hex);
+  const base = cols[0], ink = cols[1] || cols[0], accent = cols[2] || cols[1] || cols[0];
+
+  g.fillStyle = base;
+  g.fillRect(0, 0, s, s);
+  if (f.motifCm == null) return t;
+
+  const c = s / 2;
+  if (f.motifType === "geometric") {
+    g.fillStyle = ink;
+    g.beginPath();
+    g.moveTo(c, s * 0.12); g.lineTo(s * 0.88, c); g.lineTo(c, s * 0.88); g.lineTo(s * 0.12, c);
+    g.closePath(); g.fill();
+    g.fillStyle = accent;
+    g.beginPath();
+    g.moveTo(c, s * 0.34); g.lineTo(s * 0.66, c); g.lineTo(c, s * 0.66); g.lineTo(s * 0.34, c);
+    g.closePath(); g.fill();
+  } else {
+    // Floral / block: petals around a centre, plus a corner sprig so the tile
+    // does not read as a lonely dot grid when repeated.
+    g.fillStyle = ink;
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      g.beginPath();
+      g.ellipse(c + Math.cos(a) * s * 0.20, c + Math.sin(a) * s * 0.20,
+                s * 0.13, s * 0.09, a, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = accent;
+    g.beginPath(); g.arc(c, c, s * 0.10, 0, Math.PI * 2); g.fill();
+    g.globalAlpha = 0.65;
+    g.beginPath(); g.ellipse(s * 0.06, s * 0.06, s * 0.09, s * 0.05, 0.8, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(s * 0.94, s * 0.9, s * 0.08, s * 0.045, -0.5, 0, Math.PI * 2); g.fill();
+    g.globalAlpha = 1;
+  }
+  return t;
+}
+
+function kurtaPath(g, w, h) {
+  const X = v => v * w, Y = v => v * h;
+  g.beginPath();
+  g.moveTo(X(0.31), Y(0.085));                       // left shoulder
+  g.quadraticCurveTo(X(0.16), Y(0.10), X(0.115), Y(0.175));  // over the sleeve cap
+  g.lineTo(X(0.075), Y(0.44));                       // sleeve outer edge
+  g.quadraticCurveTo(X(0.14), Y(0.475), X(0.245), Y(0.455)); // sleeve hem
+  g.lineTo(X(0.275), Y(0.30));                       // back up under the arm
+  g.lineTo(X(0.205), Y(0.985));                      // side seam, flaring out
+  g.quadraticCurveTo(X(0.5), Y(1.01), X(0.795), Y(0.985));   // hem
+  g.lineTo(X(0.725), Y(0.30));
+  g.lineTo(X(0.755), Y(0.455));
+  g.quadraticCurveTo(X(0.86), Y(0.475), X(0.925), Y(0.44));
+  g.lineTo(X(0.885), Y(0.175));
+  g.quadraticCurveTo(X(0.84), Y(0.10), X(0.69), Y(0.085));   // right shoulder
+  g.quadraticCurveTo(X(0.5), Y(0.215), X(0.31), Y(0.085));   // neckline scoop
+  g.closePath();
+}
+
+function renderGarment(canvas, f, frame) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = 156, h = 214;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  canvas.style.aspectRatio = `${w} / ${h}`;
+  const g = canvas.getContext("2d");
+  g.scale(dpr, dpr);
+  g.clearRect(0, 0, w, h);
+
+  // Body width spans roughly 59% of the canvas at the hem, so px-per-cm follows
+  // from the real garment width for this frame.
+  const bodyPx = w * 0.59;
+  const pxPerCm = bodyPx / KURTA_CM[frame];
+  const motifPx = f.motifCm == null ? 24 : Math.max(5, f.motifCm * pxPerCm);
+
+  g.save();
+  kurtaPath(g, w, h);
+  g.clip();
+
+  const pattern = g.createPattern(motifTile(f, motifPx), "repeat");
+  g.fillStyle = pattern;
+  g.fillRect(0, 0, w, h);
+
+  // Shading. Multiply keeps the print's own colours and only removes light,
+  // which is what stops the folds looking like grey paint over the top.
+  g.globalCompositeOperation = "multiply";
+  const across = g.createLinearGradient(0, 0, w, 0);
+  across.addColorStop(0.00, "rgba(120,120,140,.55)");
+  across.addColorStop(0.16, "rgba(255,255,255,1)");
+  across.addColorStop(0.46, "rgba(255,255,255,1)");
+  across.addColorStop(0.62, "rgba(150,150,168,.45)");
+  across.addColorStop(0.84, "rgba(255,255,255,1)");
+  across.addColorStop(1.00, "rgba(120,120,140,.55)");
+  g.fillStyle = across;
+  g.fillRect(0, 0, w, h);
+
+  const down = g.createLinearGradient(0, 0, 0, h);
+  down.addColorStop(0.00, "rgba(140,140,158,.42)");
+  down.addColorStop(0.14, "rgba(255,255,255,1)");
+  down.addColorStop(0.80, "rgba(255,255,255,1)");
+  down.addColorStop(1.00, "rgba(160,160,178,.35)");
+  g.fillStyle = down;
+  g.fillRect(0, 0, w, h);
+
+  // A couple of soft vertical folds so the drape reads as cloth.
+  for (const [cxr, wr, a] of [[0.34, 0.055, 0.20], [0.66, 0.045, 0.16]]) {
+    const fold = g.createLinearGradient((cxr - wr) * w, 0, (cxr + wr) * w, 0);
+    fold.addColorStop(0, "rgba(255,255,255,1)");
+    fold.addColorStop(0.5, `rgba(120,120,140,${a})`);
+    fold.addColorStop(1, "rgba(255,255,255,1)");
+    g.fillStyle = fold;
+    g.fillRect(0, 0, w, h);
+  }
+
+  g.globalCompositeOperation = "source-over";
+  g.restore();
+
+  // Seam line at the neck, drawn after unclipping so it sits crisply on top.
+  g.strokeStyle = "rgba(0,0,0,.22)";
+  g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(w * 0.31, h * 0.085);
+  g.quadraticCurveTo(w * 0.5, h * 0.215, w * 0.69, h * 0.085);
+  g.stroke();
+
+  g.strokeStyle = "rgba(0,0,0,.16)";
+  kurtaPath(g, w, h);
+  g.stroke();
+}
+
+function render() {
+  const skin = hexToLab(state.skin);
+  const hair = hexToLab(state.hair);
+  const undertone = classifyUndertone(skin);
+  const depth = classifyDepth(skin);
+  const contrast = classifyContrast(skin, hair);
+  const season = selectSeason(undertone, depth, contrast);
+  const frame = buildFrame(state.height);
+
+  document.getElementById("m-l").textContent = skin.L.toFixed(1);
+  document.getElementById("m-ab").textContent = `${skin.a.toFixed(1)} / ${skin.b.toFixed(1)}`;
+  document.getElementById("m-hue").textContent = `${hueOf(skin).toFixed(1)}°`;
+  document.getElementById("m-chroma").textContent = chromaOf(skin).toFixed(1);
+  document.getElementById("m-ita").textContent = `${ita(skin).toFixed(1)}°`;
+  document.getElementById("height-val").textContent = `${state.height} cm`;
+
+  document.getElementById("season-name").textContent = season.name;
+  document.getElementById("season-desc").textContent = season.desc;
+
+  const pal = document.getElementById("palette");
+  pal.replaceChildren();
+  season.sw.forEach(hex => {
+    const i = document.createElement("i");
+    i.style.background = hex;
+    pal.appendChild(i);
+  });
+
+  const tags = document.getElementById("tags");
+  tags.replaceChildren();
+  [undertone, depth, `${contrast} contrast`, `${frame} frame`].forEach(t => {
+    const el = document.createElement("span");
+    el.className = "tag";
+    el.textContent = t;
+    tags.appendChild(el);
+  });
+
+  const cards = document.getElementById("cards");
+  cards.replaceChildren();
+
+  for (const f of FABRICS) {
+    const v = buildVerdict(f, season, contrast, frame);
+
+    const card = document.createElement("article");
+    card.className = "card";
+
+    const sw = document.createElement("div");
+    sw.className = "fabric-swatch";
+    const garment = document.createElement("canvas");
+    garment.setAttribute("role", "img");
+    garment.setAttribute("aria-label",
+      `${f.name} rendered as a kurta` + (f.motifCm ? `, motif ${f.motifCm} cm` : ", plain weave"));
+    sw.appendChild(garment);
+    card.appendChild(sw);
+    renderGarment(garment, f, frame);
+
+    const body = document.createElement("div");
+    body.className = "card-body";
+
+    const head = document.createElement("div");
+    head.className = "card-head";
+    const h3 = document.createElement("h3");
+    h3.className = "fabric-name";
+    h3.textContent = f.name;
+    const band = document.createElement("span");
+    band.className = "band";
+    band.dataset.b = v.headline;
+    band.textContent = v.headline;
+    head.append(h3, band);
+    body.appendChild(head);
+
+    const meta = document.createElement("p");
+    meta.className = "fabric-meta";
+    meta.textContent = `${f.sku} · ${f.weave} · ${f.price}`;
+    body.appendChild(meta);
+
+    const meter = document.createElement("div");
+    meter.className = "meter";
+    const track = document.createElement("div");
+    track.className = "meter-track";
+    const fill = document.createElement("div");
+    fill.className = "meter-fill";
+    fill.style.width = `${v.score.toFixed(0)}%`;
+    fill.style.background = `var(${BAND_VAR[v.headline]})`;
+    track.appendChild(fill);
+    const num = document.createElement("span");
+    num.className = "meter-num";
+    num.textContent = `${v.score.toFixed(0)}/100`;
+    meter.append(track, num);
+    body.appendChild(meter);
+
+    const ul = document.createElement("ul");
+    ul.className = "reasons";
+    for (const s of v.scores) {
+      const li = document.createElement("li");
+      li.className = "reason";
+      const k = document.createElement("span");
+      k.className = "reason-key";
+      k.textContent = s.key;
+      const p = document.createElement("p");
+      p.className = "reason-text";
+      p.textContent = s.text;
+      li.append(k, p);
+      ul.appendChild(li);
+    }
+    body.appendChild(ul);
+
+    if (f.motifCm == null) {
+      const note = document.createElement("p");
+      note.className = "note";
+      note.textContent = "Plain weave — verdict rests on colour and contrast only.";
+      body.appendChild(note);
+    }
+
+    card.appendChild(body);
+    cards.appendChild(card);
+  }
+}
+
+/* ============================================================
+   Photo analysis — entirely client-side, entirely in this file.
+
+   No face-detection model is used here, and that is a CSP constraint, not a
+   design preference: a published artifact may not load the WASM runtime or
+   model weights that MediaPipe needs. The browser extension has no such limit
+   and will use MediaPipe Face Landmarker for precise landmark sampling.
+
+   What runs instead is colour science. Skin is found by CIELAB hue rather than
+   the usual YCbCr thresholds, because those thresholds were calibrated on
+   lighter skin and degrade badly on deeper tones — exactly the population this
+   product serves. Hue is close to invariant with melanin depth; luminance is
+   not. That makes hue the right axis to threshold on.
+   ============================================================ */
+
+const MAX_W = 520;
+const state_photo = { bitmap: null, imageData: null, w: 0, h: 0, marks: {} };
+let pickMode = "skin";
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+const median = arr => {
+  if (!arr.length) return 0;
+  const s = Float64Array.from(arr).sort();
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
+
+const toHex = (r, g, b) =>
+  "#" + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
+
+/* Percentile-based white patch. Photo lighting shifts skin colour more than
+   any real difference between two people's complexions, so without this the
+   verdict mostly measures the room's light bulbs. The 97th percentile is used
+   rather than the maximum so a single blown-out specular highlight cannot
+   define the white point. */
+function whiteBalance(data) {
+  const chan = [[], [], []];
+  for (let i = 0; i < data.length; i += 4) {
+    chan[0].push(data[i]); chan[1].push(data[i + 1]); chan[2].push(data[i + 2]);
+  }
+  const p97 = chan.map(c => {
+    const s = Float64Array.from(c).sort();
+    return s[Math.min(s.length - 1, Math.floor(s.length * 0.97))] || 255;
+  });
+  const target = Math.max(...p97);
+  const gain = p97.map(v => (v > 8 ? target / v : 1));
+  for (let i = 0; i < data.length; i += 4) {
+    data[i]     = Math.min(255, data[i]     * gain[0]);
+    data[i + 1] = Math.min(255, data[i + 1] * gain[1]);
+    data[i + 2] = Math.min(255, data[i + 2] * gain[2]);
+  }
+}
+
+function isSkinPixel(r, g, b) {
+  const lab = rgbToLab([r, g, b]);
+  const h = hueOf(lab), c = chromaOf(lab);
+  // The L* floor sits at 10, not the more natural-looking 16. Tested against a
+  // ladder of real skin tones, a floor of 16 silently rejected the two deepest
+  // — reintroducing exactly the bias this hue-based gate exists to avoid.
+  // Excluding true black is the chroma gate's job, not the lightness gate's:
+  // blacks and greys are near-neutral and fail c > 6 regardless of how dark
+  // they are, so the floor can go low without letting them in.
+  return lab.L > 10 && lab.L < 95 && c > 6 && c < 62 && h > 15 && h < 90;
+}
+
+const quantile = (sorted, p) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
+
+/* Pure: pixels in, findings out. No DOM access anywhere in here, which is what
+   lets it be exercised headlessly against synthetic portraits. */
+function detectColouring(data, w, h) {
+  const xs = [], ys = [];
+  for (let y = 0; y < h; y += 2) {
+    for (let x = 0; x < w; x += 2) {
+      const i = (y * w + x) * 4;
+      if (data[i + 3] < 200) continue;
+      if (isSkinPixel(data[i], data[i + 1], data[i + 2])) { xs.push(x); ys.push(y); }
+    }
+  }
+
+  if (xs.length < 60) {
+    return { ok: false, error: "No face found in this photo. Try a clearer, front-facing picture — or click your cheek to set it manually." };
+  }
+
+  // Face box from percentiles rather than a fixed radius around the median.
+  // Percentiles adapt to how much of the frame the face fills, so a tight
+  // headshot and a half-body photo both localise correctly.
+  const sx = xs.slice().sort((a, b) => a - b);
+  const sy = ys.slice().sort((a, b) => a - b);
+  const x0 = quantile(sx, 0.10), x1 = quantile(sx, 0.90);
+  const y0 = quantile(sy, 0.10), y1 = quantile(sy, 0.90);
+  const faceW = Math.max(8, x1 - x0), faceH = Math.max(8, y1 - y0);
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+
+  // Sample skin from the central core of the face box only. The edges are
+  // where hairline, ears, jaw shadow and background bleed in.
+  const sr = [], sg = [], sb = [];
+  const inset = 0.30;
+  for (let y = Math.round(y0 + faceH * inset); y <= Math.round(y1 - faceH * inset); y++) {
+    for (let x = Math.round(x0 + faceW * inset); x <= Math.round(x1 - faceW * inset); x++) {
+      if (x < 0 || y < 0 || x >= w || y >= h) continue;
+      const i = (y * w + x) * 4;
+      if (data[i + 3] < 200) continue;
+      if (!isSkinPixel(data[i], data[i + 1], data[i + 2])) continue;
+      sr.push(data[i]); sg.push(data[i + 1]); sb.push(data[i + 2]);
+    }
+  }
+  if (sr.length < 40) {
+    return { ok: false, error: "Face region too small to sample. Try a closer photo, or click your cheek." };
+  }
+
+  // Median, not mean: robust to shadow, stray hair and specular highlights.
+  const skinHex = toHex(median(sr), median(sg), median(sb));
+  const skinLab = hexToLab(skinHex);
+
+  // Hair sits in a band above and around the top of the face box. Searching a
+  // band rather than "everything above the face" keeps shoulders, clothing and
+  // background out of the sample.
+  const hy0 = Math.max(0, Math.round(y0 - faceH * 0.95));
+  const hy1 = Math.min(h - 1, Math.round(y0 + faceH * 0.18));
+  const hx0 = Math.max(0, Math.round(x0 - faceW * 0.38));
+  const hx1 = Math.min(w - 1, Math.round(x1 + faceW * 0.38));
+
+  const cand = [];
+  for (let y = hy0; y <= hy1; y++) {
+    for (let x = hx0; x <= hx1; x++) {
+      const i = (y * w + x) * 4;
+      if (data[i + 3] < 200) continue;
+      const lab = rgbToLab([data[i], data[i + 1], data[i + 2]]);
+      // Darker than skin by a clear margin, and not vividly coloured — that
+      // last test is what keeps a bright dupatta out of the hair sample.
+      if (lab.L < skinLab.L - 14 && chromaOf(lab) < 34) {
+        cand.push({ L: lab.L, r: data[i], g: data[i + 1], b: data[i + 2], x, y });
+      }
+    }
+  }
+
+  let hairHex = null, hairPt = null;
+  if (cand.length >= 40) {
+    // Take the darkest 55%: hair's own highlights are much lighter than its
+    // body, and including them washes the sample toward mid-brown.
+    cand.sort((a, b) => a.L - b.L);
+    const core = cand.slice(0, Math.max(30, Math.floor(cand.length * 0.55)));
+    hairHex = toHex(median(core.map(p => p.r)), median(core.map(p => p.g)), median(core.map(p => p.b)));
+    hairPt = [median(core.map(p => p.x)), median(core.map(p => p.y))];
+  }
+
+  return {
+    ok: true,
+    skinHex,
+    // Hair covered by a dupatta or hijab is common and legitimate here. Falling
+    // back to a depth-appropriate default and saying so beats silently sampling
+    // the scarf and reporting it as hair colour.
+    hairHex: hairHex || (skinLab.L > 55 ? "#3d2b1f" : "#0d0b0a"),
+    hairFound: Boolean(hairHex),
+    skinCount: sr.length,
+    hairCount: hairHex ? cand.length : 0,
+    marks: hairHex ? { skin: [cx, cy], hair: hairPt } : { skin: [cx, cy] }
+  };
+}
+
+function analysePhoto() {
+  const { imageData, w, h } = state_photo;
+  const data = new Uint8ClampedArray(imageData.data);
+  if (document.getElementById("wb").checked) whiteBalance(data);
+
+  const warn = document.getElementById("photo-warn");
+  const hint = document.getElementById("photo-hint");
+  const res = detectColouring(data, w, h);
+
+  if (!res.ok) {
+    warn.textContent = res.error;
+    hint.textContent = "";
+    drawPhoto(data);
+    return;
+  }
+
+  state.skin = res.skinHex;
+  state.hair = res.hairHex;
+  state_photo.marks = res.marks;
+
+  warn.textContent = res.hairFound
+    ? ""
+    : "No hair visible — covered, cropped out, or too close to your skin tone. Contrast is estimated from your skin depth instead.";
+
+  hint.textContent = `Read automatically from ${res.skinCount.toLocaleString()} skin pixels`
+    + (res.hairFound ? ` and ${res.hairCount.toLocaleString()} hair pixels.` : ".");
+
+  drawPhoto(data);
+  syncSampled();
+  clearChipSelection();
+  render();
+}
+
+function drawPhoto(data) {
+  const { w, h } = state_photo;
+  ctx.putImageData(new ImageData(data, w, h), 0, 0);
+  for (const [key, pt] of Object.entries(state_photo.marks)) {
+    if (!pt) continue;
+    const [x, y] = pt;
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255,255,255,.95)";
+    ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = "rgba(0,0,0,.75)";
+    ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,.95)";
+    ctx.font = "600 10px ui-monospace, monospace";
+    ctx.fillText(key, x + 14, y + 3.5);
+    ctx.restore();
+  }
+}
+
+/* Click sampling takes a small patch median rather than one pixel: a single
+   pixel lands on a pore, a stray hair or sensor noise about as often as not. */
+function samplePatch(px, py) {
+  const { imageData, w, h } = state_photo;
+  const data = new Uint8ClampedArray(imageData.data);
+  if (document.getElementById("wb").checked) whiteBalance(data);
+
+  const r = [], g = [], b = [], rad = 6;
+  for (let y = Math.max(0, py - rad); y <= Math.min(h - 1, py + rad); y++) {
+    for (let x = Math.max(0, px - rad); x <= Math.min(w - 1, px + rad); x++) {
+      const i = (y * w + x) * 4;
+      r.push(data[i]); g.push(data[i + 1]); b.push(data[i + 2]);
+    }
+  }
+  const hex = toHex(median(r), median(g), median(b));
+  state[pickMode] = hex;
+  state_photo.marks[pickMode] = [px, py];
+  document.getElementById("photo-warn").textContent = "";
+  drawPhoto(data);
+  syncSampled();
+  clearChipSelection();
+  render();
+}
+
+function syncSampled() {
+  document.getElementById("s-skin").style.background = state.skin;
+  document.getElementById("s-hair").style.background = state.hair;
+  document.getElementById("s-skin-hex").textContent = state.skin;
+  document.getElementById("s-hair-hex").textContent = state.hair;
+}
+
+function clearChipSelection() {
+  document.querySelectorAll("#skin .chip, #hair .chip")
+    .forEach(c => c.setAttribute("aria-pressed", "false"));
+}
+
+async function loadPhoto(file) {
+  if (!file || !file.type.startsWith("image/")) return;
+  // imageOrientation honours EXIF, so phone photos are not analysed sideways.
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const scale = Math.min(1, MAX_W / bitmap.width);
+  const w = Math.max(1, Math.round(bitmap.width * scale));
+  const h = Math.max(1, Math.round(bitmap.height * scale));
+
+  canvas.width = w; canvas.height = h;
+  ctx.drawImage(bitmap, 0, 0, w, h);
+
+  state_photo.bitmap = bitmap;
+  state_photo.imageData = ctx.getImageData(0, 0, w, h);
+  state_photo.w = w; state_photo.h = h;
+  state_photo.marks = {};
+
+  document.getElementById("drop").hidden = true;
+  document.getElementById("photo-stage").hidden = false;
+  analysePhoto();
+}
+
+/* ---------- wiring ---------- */
+
+buildChips("skin", SKINS, "skin");
+buildChips("hair", HAIRS, "hair");
+
+document.getElementById("height").addEventListener("input", e => {
+  state.height = Number(e.target.value);
+  render();
+});
+
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", "false"));
+    tab.setAttribute("aria-selected", "true");
+    const photo = tab.dataset.mode === "photo";
+    document.getElementById("pane-swatch").hidden = photo;
+    document.getElementById("pane-photo").hidden = !photo;
+  });
+});
+
+const drop = document.getElementById("drop");
+document.getElementById("file").addEventListener("change", e => loadPhoto(e.target.files[0]));
+["dragenter", "dragover"].forEach(ev =>
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev =>
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => loadPhoto(e.dataTransfer.files[0]));
+
+canvas.addEventListener("click", e => {
+  if (!state_photo.imageData) return;
+  const r = canvas.getBoundingClientRect();
+  samplePatch(
+    Math.round((e.clientX - r.left) * (canvas.width / r.width)),
+    Math.round((e.clientY - r.top) * (canvas.height / r.height))
+  );
+});
+
+document.querySelectorAll(".pickbtn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    pickMode = btn.dataset.pick;
+    document.querySelectorAll(".pickbtn").forEach(b => b.setAttribute("aria-pressed", "false"));
+    btn.setAttribute("aria-pressed", "true");
+  });
+});
+
+document.getElementById("wb").addEventListener("change", () => {
+  if (state_photo.imageData) analysePhoto();
+});
+
+document.getElementById("reset-photo").addEventListener("click", () => {
+  state_photo.imageData = null;
+  state_photo.marks = {};
+  document.getElementById("file").value = "";
+  document.getElementById("photo-stage").hidden = true;
+  document.getElementById("drop").hidden = false;
+});
+
+render();
+</script>

@@ -1,0 +1,468 @@
+<title>Leffa Runbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --paper:      #f7f6f2;
+    --surface:    #ffffff;
+    --surface-2:  #f0eee8;
+    --ink:        #191b2e;
+    --ink-soft:   #5b5d70;
+    --ink-faint:  #8e8fa0;
+    --rule:       #dddad2;
+    --accent:     #2f3d8f;
+    --accent-dim: #e6e8f5;
+    --warn:       #a8791b;
+    --warn-bg:    #f7eeda;
+    --danger:     #b0472b;
+    --danger-bg:  #f8e6df;
+    --good:       #0f7a5a;
+    --good-bg:    #e3f2ec;
+    --shadow: 0 1px 2px rgba(25,27,46,.06), 0 8px 24px -12px rgba(25,27,46,.18);
+    --display: "Fraunces", Georgia, serif;
+    --body: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14151f; --surface: #1c1d29; --surface-2: #232431;
+      --ink: #eceaf4; --ink-soft: #a5a5b8; --ink-faint: #74748a; --rule: #2f3040;
+      --accent: #93a0e8; --accent-dim: #232640;
+      --warn: #e0b45c; --warn-bg: #342c15;
+      --danger: #ef8b6b; --danger-bg: #3a211a;
+      --good: #4cc79c; --good-bg: #14332a;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14151f; --surface: #1c1d29; --surface-2: #232431;
+    --ink: #eceaf4; --ink-soft: #a5a5b8; --ink-faint: #74748a; --rule: #2f3040;
+    --accent: #93a0e8; --accent-dim: #232640;
+    --warn: #e0b45c; --warn-bg: #342c15;
+    --danger: #ef8b6b; --danger-bg: #3a211a;
+    --good: #4cc79c; --good-bg: #14332a;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--body); font-size: 15.5px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 800px; margin: 0 auto; padding: 44px 24px 80px; }
+
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 24px; margin-bottom: 12px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 10px;
+  }
+  h1 {
+    font-family: var(--display); font-weight: 600;
+    font-size: clamp(2rem, 5vw, 2.9rem); line-height: 1.03;
+    letter-spacing: -.02em; margin: 0 0 12px; text-wrap: balance;
+  }
+  .standfirst { margin: 0; max-width: 62ch; color: var(--ink-soft); font-size: 1.02rem; }
+
+  h2 {
+    font-family: var(--display); font-weight: 600; font-size: 1.4rem;
+    letter-spacing: -.01em; margin: 42px 0 6px; text-wrap: balance;
+  }
+  h3 { font-size: 1.02rem; font-weight: 600; margin: 22px 0 6px; }
+  p { margin: 0 0 13px; }
+  a { color: var(--accent); }
+
+  /* choice panel */
+  .choice { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 22px 0 8px; }
+  @media (max-width: 620px) { .choice { grid-template-columns: 1fr; } }
+  .opt {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 4px; padding: 16px 18px; box-shadow: var(--shadow);
+  }
+  .opt.pick { border-color: var(--accent); border-width: 1.5px; }
+  .opt h4 {
+    margin: 0 0 3px; font-family: var(--display); font-size: 1.08rem; font-weight: 600;
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  }
+  .badge {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .09em;
+    text-transform: uppercase; padding: 3px 7px; border-radius: 3px;
+    background: var(--accent-dim); color: var(--accent); white-space: nowrap;
+  }
+  .opt ul { margin: 8px 0 0; padding-left: 17px; font-size: 13.6px; color: var(--ink-soft); }
+  .opt li { margin-bottom: 4px; }
+
+  /* steps — a real sequence, so numbering carries information */
+  .step {
+    display: grid; grid-template-columns: 34px 1fr; gap: 15px;
+    padding: 20px 0; border-top: 1px solid var(--rule);
+  }
+  .num {
+    font-family: var(--mono); font-size: 12px; font-weight: 500;
+    color: var(--accent); background: var(--accent-dim);
+    width: 30px; height: 30px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step-body { min-width: 0; }
+  .step h3 { margin: 3px 0 4px; }
+  .time {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 9px;
+  }
+
+  pre {
+    background: var(--surface-2); border: 1px solid var(--rule);
+    border-radius: 4px; padding: 12px 14px; overflow-x: auto;
+    font-family: var(--mono); font-size: 12.6px; line-height: 1.55;
+    margin: 10px 0; color: var(--ink);
+  }
+  code {
+    font-family: var(--mono); font-size: .88em;
+    background: var(--surface-2); padding: 1px 5px; border-radius: 3px;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  .note {
+    border-left: 3px solid var(--accent); background: var(--accent-dim);
+    padding: 11px 14px; border-radius: 0 4px 4px 0; margin: 12px 0;
+    font-size: 14px; color: var(--ink-soft);
+  }
+  .note.warn   { border-color: var(--warn);   background: var(--warn-bg); }
+  .note.danger { border-color: var(--danger); background: var(--danger-bg); }
+  .note strong { color: var(--ink); }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-faint); font-weight: 500;
+  }
+  td code { font-size: 12.4px; }
+  .scroll { overflow-x: auto; }
+
+  .verdict-row td:first-child { font-family: var(--mono); font-size: 12.4px; white-space: nowrap; }
+
+  footer {
+    margin-top: 44px; padding-top: 22px; border-top: 1px solid var(--rule);
+    color: var(--ink-faint); font-size: 13.4px;
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Stage 4b &middot; out-of-distribution test</p>
+    <h1>Leffa Runbook</h1>
+    <p class="standfirst">
+      Getting a virtual try-on running on a free GPU, and finding out whether it
+      can handle a kurta. About two hours the first time, most of it waiting on
+      downloads.
+    </p>
+  </header>
+
+  <div class="note danger">
+    <strong>Not yet run end to end.</strong> These steps are written from Leffa's
+    published API and its <code>app.py</code>, not from a completed run on your
+    account. Expect at least one thing in setup to need fixing &mdash; the
+    &ldquo;when it breaks&rdquo; section covers what usually does.
+  </div>
+
+  <h2>Kaggle or Colab</h2>
+  <p>Both are free and both work. For this job the difference is real.</p>
+
+  <div class="choice">
+    <div class="opt pick">
+      <h4>Kaggle <span class="badge">recommended</span></h4>
+      <ul>
+        <li><strong>30 GPU-hours/week, guaranteed</strong> and reset on schedule</li>
+        <li>9-hour sessions, no idle babysitting</li>
+        <li>Checkpoints attach instantly as a dataset &mdash; download once, ever</li>
+        <li>Environment is pinned, so detectron2 builds more reliably</li>
+      </ul>
+    </div>
+    <div class="opt">
+      <h4>Colab</h4>
+      <ul>
+        <li>15&ndash;30 GPU-hours/week, <strong>dynamic and unpublished</strong></li>
+        <li>Disconnects after ~90 minutes idle &mdash; can cost you the 10&nbsp;GB download</li>
+        <li>At peak times a GPU request may quietly return CPU</li>
+        <li>Drive's free 15&nbsp;GB is tight against ~10&nbsp;GB of weights</li>
+      </ul>
+    </div>
+  </div>
+
+  <p>
+    You do not have to choose permanently. Running both gives you roughly
+    <strong>60 free GPU-hours a week</strong>. Start on Kaggle; keep Colab for
+    when the weekly quota runs out.
+  </p>
+
+  <h2>The steps</h2>
+
+  <div class="step">
+    <div class="num">1</div>
+    <div class="step-body">
+      <h3>Create the account and turn on the GPU</h3>
+      <p class="time">5 minutes &middot; one time</p>
+      <p>
+        On Kaggle you must verify a phone number before GPUs unlock &mdash; this
+        catches people out, since the accelerator menu appears but never
+        allocates until you do. Then in a new notebook: <em>Settings &rarr;
+        Accelerator &rarr; GPU T4 &times;2</em>, and <em>Internet &rarr; On</em>.
+      </p>
+      <p>On Colab: <em>Runtime &rarr; Change runtime type &rarr; T4 GPU</em>.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">2</div>
+    <div class="step-body">
+      <h3>Photos &mdash; you don't need any</h3>
+      <p class="time">0 minutes</p>
+      <p>
+        Leffa ships its own example people and garments under
+        <code>ckpts/examples/</code>, and they arrive with the checkpoints in
+        step 6. Nothing to upload, nothing to keep private.
+      </p>
+      <p>
+        This is not just convenient, it is the better experiment. The inpainting
+        region comes from SCHP parsing the <em>person</em> plus
+        <code>garment_type</code> &mdash; whether that region stops at the waist
+        has nothing to do with who is in the photograph. So the truncation
+        prediction is fully answerable on stock images, and using them removes
+        ethnicity as a confound while you isolate the garment.
+      </p>
+      <div class="note">
+        <strong>Later, if you want.</strong> Set
+        <code>USE_OWN_PHOTOS = True</code> to check the model holds up on South
+        Asian full-body shots specifically. Use your own or ones you have
+        explicit permission for, keep them out of git, and note that a body photo
+        in a public repo history is not something you can take back.
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">3</div>
+    <div class="step-body">
+      <h3>Get your code where the notebook can see it</h3>
+      <p class="time">10 minutes &middot; one time</p>
+      <p>
+        The notebook imports <code>fabric_advisor.render</code>, so the repo has
+        to be reachable. Push it to GitHub, then either clone it in Colab or
+        attach it as a Kaggle dataset called <code>fabric-advisor</code>.
+      </p>
+      <pre><code>cd c:\Users\subha\OneDrive\Desktop\clothing
+git init
+git add .
+git commit -m "Fabric advisor: verdict engine and flat-lay synthesis"
+git remote add origin https://github.com/YOUR_USERNAME/clothing.git
+git push -u origin main</code></pre>
+      <p>
+        In the Colab cell, replace <code>YOUR_USERNAME</code> with your GitHub
+        handle. A <code>.gitignore</code> for <code>.venv/</code> and
+        <code>data/cache/</code> is worth adding first.
+      </p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">4</div>
+    <div class="step-body">
+      <h3>Paste the cells</h3>
+      <p class="time">3 minutes</p>
+      <p>
+        Open <code>scripts/kaggle_leffa_ood.py</code>. Each <code>#&nbsp;%%</code>
+        marks one notebook cell &mdash; paste them in order into separate cells.
+        The first cell detects whether it is on Kaggle or Colab and sets its paths
+        accordingly, so the same script works on both.
+      </p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">5</div>
+    <div class="step-body">
+      <h3>Install &mdash; this is the step that fails</h3>
+      <p class="time">15&ndash;25 minutes</p>
+      <p>
+        Leffa needs <strong>detectron2</strong> for DensePose. It is not on PyPI
+        and compiles against whatever torch is installed, which is exactly why it
+        breaks: Colab's preinstalled torch tends to run ahead of what detectron2
+        supports.
+      </p>
+      <p>
+        The cell asserts detectron2 imported successfully and stops if it did
+        not. That is deliberate &mdash; failing loudly here is much better than
+        discovering it 20 minutes into a run.
+      </p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">6</div>
+    <div class="step-body">
+      <h3>Download the checkpoints</h3>
+      <p class="time">15&ndash;30 minutes &middot; ~10&nbsp;GB</p>
+      <p>
+        Try-on weights plus SCHP, OpenPose and DensePose preprocessors. On Colab
+        these land in Drive so a disconnect does not cost you the download twice;
+        on Kaggle, once it finishes, <strong>save the output as a dataset</strong>
+        and attach that next time instead of re-downloading.
+      </p>
+      <div class="note">
+        <strong>Do this while you are watching.</strong> On Colab especially
+        &mdash; a 90-minute idle disconnect mid-download is the most common way
+        this step is wasted.
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">7</div>
+    <div class="step-body">
+      <h3>Run it</h3>
+      <p class="time">~30 seconds per image</p>
+      <p>
+        Cell 2 synthesises kurta flat-lays from four fabric prints. Cell 4 varies
+        two things, one at a time:
+      </p>
+      <ul>
+        <li>
+          <strong><code>garment_type</code></strong> &mdash; <code>upper_body</code>
+          against <code>dresses</code>. This is the experiment: it decides whether
+          the kurta problem is a masking bug you can fix today or a model
+          limitation needing retraining.
+        </li>
+        <li>
+          <strong><code>condition</code></strong> &mdash; <code>control</code> uses
+          a Western top Leffa was actually trained on; <code>kurta</code> uses your
+          synthesised flat-lay. Without the control a bad result is ambiguous, and
+          you cannot tell a garment-category problem from a broken setup.
+        </li>
+      </ul>
+      <p>
+        Four people &times; five garments &times; two types = 40 generations, so
+        budget about 20 minutes. Cut <code>people[:4]</code> to
+        <code>people[:1]</code> for a first pass, to confirm the pipeline runs
+        before spending quota.
+      </p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">8</div>
+    <div class="step-body">
+      <h3>Read the report</h3>
+      <p class="time">10 minutes</p>
+      <p>
+        Cell 5 writes <code>ood_report.csv</code>. The column that settles the
+        question is <code>mask_bottom</code>, grouped by <code>garment_type</code>.
+      </p>
+    </div>
+  </div>
+
+  <h2>What the numbers mean</h2>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>What you see</th><th>What it means and what to do</th></tr>
+      </thead>
+      <tbody>
+        <tr class="verdict-row">
+          <td>mask_bottom ≈ 0.45<br>on <code>upper_body</code>,<br>higher on <code>dresses</code></td>
+          <td><strong>Prediction confirmed.</strong> The kurta problem is a masking bug, not a model limitation. Use <code>dresses</code> and move on. No retraining.</td>
+        </tr>
+        <tr class="verdict-row">
+          <td>mask_bottom low<br>on both</td>
+          <td>The parser cannot see a kurta as one garment. Build a custom mask: union the "upper clothes" and "skirt/dress" labels from the SCHP parse, extend to the knee line using OpenPose keypoints.</td>
+        </tr>
+        <tr class="verdict-row">
+          <td>masks fine,<br>dE_mean &gt; 10</td>
+          <td>The model is repainting the print, not transferring it. This directly undermines your colour verdict &mdash; and it is the strongest argument for keeping compositing rather than generation.</td>
+        </tr>
+        <tr class="verdict-row">
+          <td>scale_ratio outside<br>0.75&ndash;1.25</td>
+          <td>The print is rendered at the wrong repeat size, so any verdict stated in centimetres is void for that image.</td>
+        </tr>
+        <tr class="verdict-row">
+          <td>the <code>control</code><br>fails too</td>
+          <td>Not a garment-category problem &mdash; your setup is broken. Check that DensePose loaded and the person image is full-body. Fix this before drawing any conclusion about kurtas.</td>
+        </tr>
+        <tr class="verdict-row">
+          <td>everything passes,<br>images look wrong</td>
+          <td>The failure is anatomy or dupatta handling, which no metric here captures. Write it up as a known-failure list &mdash; that reads better than a claimed win.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>When it breaks</h2>
+
+  <h3>detectron2 will not build</h3>
+  <p>
+    The most common failure by a distance. Pin torch to the version in Leffa's
+    <code>requirements.txt</code>, restart the runtime, then rebuild. Do not skip
+    detectron2 &mdash; DensePose is required and Leffa will not run without it.
+  </p>
+
+  <h3>CUDA out of memory</h3>
+  <p>
+    A T4 has 16&nbsp;GB. Leffa runs fp16 already. Lower <code>steps</code> from 30
+    to 20 and process one person at a time. If it still fails, restart the
+    runtime &mdash; a previous cell is probably still holding the model.
+  </p>
+
+  <h3>Colab disconnected and everything is gone</h3>
+  <p>
+    Expected on free Colab. This is why checkpoints cache to Drive. Re-run the
+    setup cells; the download step will skip and symlink the cached weights.
+  </p>
+
+  <h3>"No GPU available"</h3>
+  <p>
+    On Kaggle, check your weekly quota on the account page. On Colab there is no
+    quota to check &mdash; wait a few hours, or switch platforms. This is the
+    concrete cost of Colab's undisclosed allocation.
+  </p>
+
+  <h3>Parsing finds no person</h3>
+  <p>
+    The photo is probably not full-body, or the pose is unusual. SCHP expects a
+    standing, front-facing figure. Crop tighter to the person and retry.
+  </p>
+
+  <h2>After it works</h2>
+  <p>
+    Two things follow, in this order. First, <strong>replace the garment
+    template</strong>: photograph a plain light-grey kurta once, derive mask,
+    shading and displacement from it, and the same compositing code produces
+    photographic drape instead of the current procedural silhouette. Second,
+    <strong>write down what failed</strong>. A documented known-failure list is
+    worth more in an interview than a reel of cherry-picked wins, and it is what
+    separates an engineer from a demo.
+  </p>
+
+  <h2>One licensing thing to be clear-eyed about</h2>
+  <p>
+    Leffa's <strong>code</strong> is MIT, which is why it was chosen over CatVTON
+    and IDM-VTON &mdash; both CC&nbsp;BY-NC-SA and non-commercial only. But its
+    released <strong>checkpoints were trained on VITON-HD and DressCode</strong>,
+    and VITON-HD is CC&nbsp;BY-NC&nbsp;4.0.
+  </p>
+  <p>
+    Whether trained weights inherit a training set's non-commercial restriction
+    is genuinely unsettled, and anyone who tells you it is settled in either
+    direction is overstating. For a portfolio project it does not matter. Before
+    you put affiliate revenue behind it, get a real answer &mdash; that is a
+    question for a lawyer, not for a model card.
+  </p>
+
+  <footer>
+    Companion to <code>scripts/kaggle_leffa_ood.py</code>. The measurement code
+    lives in <code>src/fabric_advisor/render/ood_eval.py</code> and has its own
+    tests.
+  </footer>
+</div>

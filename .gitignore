@@ -1,0 +1,47 @@
+# Never commit credentials. Kaggle tokens, API keys, .env files.
+kaggle.json
+.env
+.env.*
+*.pem
+*credentials*
+secrets/
+
+# Never commit anyone's body photos, including your own. A photo in a public
+# git history cannot be taken back — deleting the file leaves it in every clone.
+data/people/
+data/photos/
+tryon_people/
+*.person.jpg
+*.person.png
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# Generated artefacts — reproducible from source, and large.
+data/cache/
+data/fixtures/*.png
+out/
+*.ipynb_checkpoints
+
+# ...but keep the two contact sheets. They are what the README points at, and a
+# reader should be able to see the renders without running anything.
+!data/fixtures/contact-sheet.png
+!data/fixtures/frame-comparison.png
+
+# Model weights. Tens of gigabytes; fetch them, don't version them.
+ckpts/
+*.pth
+*.onnx
+*.safetensors
+
+# OS
+.DS_Store
+Thumbs.db
