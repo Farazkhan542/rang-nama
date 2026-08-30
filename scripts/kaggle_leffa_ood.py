@@ -93,6 +93,27 @@ print(f"colab={IS_COLAB} kaggle={IS_KAGGLE}  root={ROOT}")
 
 import torch
 print("torch", torch.__version__, "| cuda", torch.cuda.is_available())
+
+# Check the GPU architecture against what this torch build actually ships
+# kernels for. Kaggle hands out P100s (sm_60, Pascal) as well as T4s (sm_75),
+# and recent torch wheels no longer include Pascal kernels. Without this check
+# every CUDA op raises "no kernel image is available for execution on the
+# device" — and it surfaces inside OpenPose, ten cells and twenty minutes from
+# anything that looks like the cause.
+if torch.cuda.is_available():
+    name = torch.cuda.get_device_name(0)
+    major, minor = torch.cuda.get_device_capability(0)
+    arches = torch.cuda.get_arch_list()
+    print(f"gpu {name} | sm_{major}{minor} | torch builds: {arches}")
+    if f"sm_{major}{minor}" not in arches:
+        print(f"{name} is sm_{major}{minor}, and this torch build has no")
+        print(f"kernels for it. Available: {arches}")
+        print("Fix: Settings -> Accelerator -> GPU T4 x2, then re-run from cell 1.")
+        print("Checkpoints in /kaggle/working survive the restart.")
+        raise SystemExit("unsupported GPU architecture")
+else:
+    raise SystemExit("No GPU. Settings -> Accelerator -> GPU T4 x2.")
+
 try:
     import detectron2
     print("detectron2", detectron2.__version__, "OK")
