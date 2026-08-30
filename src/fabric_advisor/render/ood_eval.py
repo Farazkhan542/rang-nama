@@ -113,6 +113,47 @@ def dominant_colours(img: Image.Image, mask: Image.Image | None = None, k: int =
     return sorted(out, key=lambda c: -c.proportion)
 
 
+def garment_region(img: Image.Image, tolerance: float = 14.0) -> Image.Image:
+    """Mask that excludes a uniform studio background.
+
+    Written after a control run scored *worse* than the treatment: dominant
+    colours were being taken over the whole flat-lay, so the cream ground
+    (#f4f3f0) and the product photo's white counted as garment colours. The
+    comparison was largely measuring backgrounds.
+
+    Corners are sampled rather than a fixed colour because the two sources
+    differ - synthesised flat-lays sit on cream, VITON-HD product shots on
+    white - and any hard-coded value would silently fail on one of them.
+    """
+    arr = np.asarray(img.convert("RGB"), dtype=np.float64)
+    h, w = arr.shape[:2]
+    patch = max(2, min(h, w) // 40)
+    corners = np.concatenate([
+        arr[:patch, :patch].reshape(-1, 3), arr[:patch, -patch:].reshape(-1, 3),
+        arr[-patch:, :patch].reshape(-1, 3), arr[-patch:, -patch:].reshape(-1, 3),
+    ])
+    bg = np.median(corners, axis=0)
+    bg_lab = rgb_to_lab(tuple(int(v) for v in bg))
+
+    flat = arr.reshape(-1, 3)
+    # Coarse pre-filter in RGB, then CIEDE2000 only on the plausible pixels:
+    # a per-pixel dE over a megapixel image is far too slow to be worth it.
+    near = np.abs(flat - bg).max(axis=1) < 60
+    keep = np.ones(len(flat), dtype=bool)
+    idx = np.flatnonzero(near)
+    for i in idx:
+        r, g, b = flat[i]
+        if delta_e_2000(bg_lab, rgb_to_lab((int(r), int(g), int(b)))) < tolerance:
+            keep[i] = False
+
+    mask = (keep.reshape(h, w) * 255).astype(np.uint8)
+    # If the background test swallowed nearly everything, it was wrong - fall
+    # back to the whole frame rather than comparing a handful of pixels.
+    if mask.mean() < 20:
+        mask[:] = 255
+    return Image.fromarray(mask, mode="L")
+
+
 def estimate_motif_period(img: Image.Image, mask: Image.Image | None = None,
                           max_side: int = 512) -> float | None:
     """Estimate a print's repeat period in pixels, by autocorrelation.
@@ -224,11 +265,17 @@ def mask_extent(mask: Image.Image) -> dict:
     if len(rows) == 0:
         return {"covered": 0.0, "top_fraction": None, "bottom_fraction": None}
     h = m.shape[0]
+    bottom = float(rows[-1] / h)
     return {
         "covered": float((m > 0.5).mean()),
         "top_fraction": float(rows[0] / h),
-        "bottom_fraction": float(rows[-1] / h),
+        "bottom_fraction": bottom,
         "height_fraction": float((rows[-1] - rows[0]) / h),
+        # A mask running to the frame edge means the photo is cropped, not that
+        # the garment is long. VITON-HD people are half-body shots cut at the
+        # upper thigh, so this saturates at 1.0 and cannot see truncation at
+        # all. Reporting a number here would be reporting a non-measurement.
+        "length_measurable": bottom < 0.98,
     }
 
 
@@ -242,6 +289,11 @@ def compare_print(source: Image.Image, result: Image.Image,
     model that preserves every colour but shifts their area proportions would
     otherwise be scored as having changed the colours.
     """
+    # Deriving the source mask matters more than it looks: passing None here is
+    # what made the in-distribution control score worse than the treatment.
+    if source_mask is None:
+        source_mask = garment_region(source)
+
     src = dominant_colours(source, source_mask, k=k)
     res = dominant_colours(result, result_mask, k=k)
     if not src or not res:
@@ -290,7 +342,13 @@ def verdict(metrics: dict, extent: dict) -> tuple[bool, list[str]]:
     problems: list[str] = []
 
     bottom = extent.get("bottom_fraction")
-    if bottom is not None and bottom < THRESHOLDS["mask_bottom_min"]:
+    if not extent.get("length_measurable", True):
+        problems.append(
+            "garment length not measurable - the mask reaches the frame edge, "
+            "so this photo is cropped too tightly to tell a full-length kurta "
+            "from a truncated one"
+        )
+    elif bottom is not None and bottom < THRESHOLDS["mask_bottom_min"]:
         problems.append(
             f"mask stops at {bottom:.0%} of frame height (need >= "
             f"{THRESHOLDS['mask_bottom_min']:.0%}) - garment truncated to a waist-length top"
