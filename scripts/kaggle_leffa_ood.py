@@ -165,12 +165,26 @@ if hits:
     CODE = hits[0].parents[1]
     print(f"using attached dataset: {hits[0]}")
 
-# 2. Public repo.
+# 2. Public repo. Run git through subprocess and surface stderr: suppressing
+#    it means a clone that failed for an unrelated reason (a full disk, most
+#    likely on Kaggle) looks identical to a repo that is simply private, and
+#    the error then points at the wrong thing.
 if CODE is None:
+    import shutil
+    import subprocess
+
     clone_to = Path("/kaggle/working/code" if IS_KAGGLE else "./code")
     if not (clone_to / "src" / "fabric_advisor" / "__init__.py").exists():
-        !rm -rf {clone_to}
-        !git clone -q --depth 1 {GITHUB_REPO} {clone_to} 2>/dev/null || true
+        shutil.rmtree(clone_to, ignore_errors=True)
+        r = subprocess.run(
+            ["git", "clone", "--depth", "1", GITHUB_REPO, str(clone_to)],
+            capture_output=True, text=True,
+        )
+        if r.returncode != 0:
+            print("git clone failed, exit", r.returncode)
+            print(r.stderr.strip())
+            print(subprocess.run(["df", "-h", "/kaggle/working"],
+                                 capture_output=True, text=True).stdout)
     if (clone_to / "src" / "fabric_advisor" / "__init__.py").exists():
         CODE = clone_to / "src"
         print(f"using cloned repo: {CODE}")
