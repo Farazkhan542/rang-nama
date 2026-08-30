@@ -135,12 +135,86 @@ would make the verdict non-deterministic.
 
 **Next**
 
-- Run `scripts/kaggle_leffa_ood.py` on a free Kaggle GPU to settle whether
-  Leffa handles kurta-length garments
+- Review the kurta renders by eye (the controls are reviewed; see Results)
 - Replace the procedural garment template with maps from one photograph
 - Stage 0/1: Khaadi adapter and fabric extraction (structure already mapped —
   Salesforce Commerce Cloud, `data-productid`, size-parameterised image CDN)
 - Browser extension
+
+
+## Results: does Leffa handle Pakistani ethnic wear?
+
+40 generations on a free Kaggle T4 (~76 s each): 4 people x 5 garments x 2
+`garment_type` settings. Four synthesised kurta flat-lays plus one control — a
+Western top Leffa was actually trained on — so that a bad result can be told
+apart from a broken setup.
+
+### 1. Colour fidelity is not degraded
+
+| Fabric | CIEDE2000 | vs control |
+|---|---|---|
+| lilac chiffon | 15.0 | **0.76x** |
+| maroon khaddar | 18.2 | 0.92x |
+| teal cambric | 18.3 | 0.92x |
+| rust lawn | 20.7 | 1.05x |
+| **all kurtas** | **18.1** | **0.91x** |
+
+Every fabric sits at or within tolerance of the in-distribution control.
+Whatever Leffa does to a Western top, it does no worse to a kurta.
+
+### 2. `garment_type` controls garment length, and it matters
+
+`dresses` renders a visibly longer garment than `upper_body` from identical
+inputs — the same person, the same garment, the same seed. On the control tee
+the difference is the hem sitting at the hip versus mid-thigh.
+
+That is the setting a kurta needs, and it is a configuration change rather
+than a retraining problem.
+
+### 3. Print artifacts are the real quality gap
+
+Florals show smeared petals and dropouts on some runs. The model is repainting
+the print rather than transferring it — which is precisely the argument for
+compositing in `render/flatlay.py`, where the print survives by construction.
+
+## What this run got wrong, and how that surfaced
+
+Worth recording, because the corrections are the useful part.
+
+**The prediction was wrong.** SCHP labels clothing as "upper clothes" ending at
+the waist, so `upper_body` was expected to truncate a kurta to a top over the
+wearer's original trousers, with the mask reaching ~45% of frame height. It
+reached 87-100%. No truncation.
+
+**And the metric could not have detected it anyway.** `mask_bottom` measured a
+fraction of *frame* height, but VITON-HD people are half-body shots cropped at
+the upper thigh — 30 of 40 rows saturated at exactly 1.00. There is no frame
+below the waist for a kurta to extend into. `mask_extent` now reports
+`length_measurable` and refuses to draw a conclusion it cannot support.
+
+**The control caught a threshold that was invented rather than calibrated.**
+`delta_e_mean_max` was set to 10.0 on the reasoning that dE > 10 reads as a
+different colour. True of two flat swatches; false when comparing a garment
+photographed flat against the same garment worn, shaded and lit. The control
+scored 19.7 — the in-distribution case failing the threshold that was supposed
+to bound it. Absolute CIEDE2000 has no calibrated "good" value here, so
+`compare_to_control` measures against the control instead.
+
+**A background bug inflated every reading.** `compare_print` was called without
+a source mask, so dominant colours were taken over the whole flat-lay and the
+cream ground was the single largest "garment colour" at 49% of the image. The
+comparison was substantially measuring backgrounds. `garment_region` now
+derives a mask by sampling corner colour.
+
+Two of these were only visible because the run included a control. An
+experiment whose in-distribution baseline fails is measuring its instrument,
+not its subject.
+
+### Still untested
+
+Whether kurtas truncate at the waist. It needs full-body photographs; the
+standard benchmark's own images are cropped above the region where the failure
+would appear.
 
 ## Why try-on needed a flat-lay synthesiser first
 
