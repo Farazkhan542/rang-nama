@@ -306,6 +306,7 @@ jobs += [("kurta", name, img, motif_cm)
          for name, (img, motif_cm) in garments.items()]
 
 results = []
+failures = 0
 for person_path in people[:4]:
     person = Image.open(person_path).convert("RGB")
     for condition, garment_name, garment, motif_cm in jobs:
@@ -314,8 +315,19 @@ for person_path in people[:4]:
                                garment_type=garment_type, steps=30, seed=42)
             try:
                 res = backend.run(req)
-            except Exception as exc:
-                print(f"FAILED {person_path.stem} {garment_name} {garment_type}: {exc}")
+            except Exception:
+                # Print the traceback, not just str(exc). A bare message turns
+                # an ImportError deep in a preprocessor into "FAILED", and the
+                # run then dies 40 iterations later with an empty DataFrame.
+                import traceback
+                print(f"FAILED {person_path.stem} {garment_name} {garment_type}")
+                traceback.print_exc()
+                failures += 1
+                if failures >= 3:
+                    raise SystemExit(
+                        "Three generations failed identically - stopping rather "
+                        "than burning GPU time on 37 more. Fix the error above."
+                    )
                 continue
 
             stem = f"{person_path.stem}__{condition}_{garment_name}__{garment_type}"
@@ -353,6 +365,12 @@ for r in results:
         "scale_ratio": metrics.get("motif_scale_ratio"),
         "pass": ok, "problems": "; ".join(problems),
     })
+
+if not rows:
+    raise SystemExit(
+        "No results to score - cell 4 produced nothing. Scroll up for the "
+        "traceback from the first failed generation; that is the real error."
+    )
 
 import pandas as pd
 
