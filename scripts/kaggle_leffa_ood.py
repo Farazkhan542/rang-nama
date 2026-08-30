@@ -123,7 +123,13 @@ ALLOW = [
     "examples/*",                        # bundled people and garments
 ]
 
-if CKPT_CACHE and (CKPT_CACHE / "virtual_tryon.pth").exists():
+# Check the destination first. On Kaggle CKPT_CACHE is None, so without this
+# guard a re-run falls straight through to `rm -rf` and re-downloads 7.7 GiB
+# that is already sitting on disk — and attaching a dataset restarts the
+# kernel, which makes a re-run of this cell the normal case, not the rare one.
+if (CKPTS / "virtual_tryon.pth").exists():
+    print(f"checkpoints already present at {CKPTS} — skipping download")
+elif CKPT_CACHE and (CKPT_CACHE / "virtual_tryon.pth").exists():
     print(f"reusing cached checkpoints from {CKPT_CACHE}")
     !ln -sfn {CKPT_CACHE} {CKPTS}
 else:
