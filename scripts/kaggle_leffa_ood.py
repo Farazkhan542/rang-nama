@@ -45,20 +45,24 @@ import os
 import sys
 from pathlib import Path
 
-IS_COLAB = "google.colab" in sys.modules or os.path.exists("/content")
-IS_KAGGLE = os.path.exists("/kaggle")
+# Detect Kaggle FIRST, and never test for Colab by the presence of the
+# google.colab package or a /content directory: Kaggle images ship both, so
+# either test misfires there. /var/colab/hostname is the marker google.colab
+# itself checks before mounting Drive, which makes it the honest signal.
+IS_KAGGLE = os.path.exists("/kaggle/working") or "KAGGLE_KERNEL_RUN_TYPE" in os.environ
+IS_COLAB = not IS_KAGGLE and os.path.exists("/var/colab/hostname")
 
-if IS_COLAB:
+if IS_KAGGLE:
+    ROOT = Path("/kaggle/working/Leffa")
+    CKPT_CACHE = None          # attach the weights as a Kaggle dataset instead
+    WORK = Path("/kaggle/working/out")
+elif IS_COLAB:
     from google.colab import drive
     drive.mount("/content/drive")
     # Cache weights on Drive so a disconnect does not cost another 10 GB pull.
     ROOT = Path("/content/Leffa")
     CKPT_CACHE = Path("/content/drive/MyDrive/leffa_ckpts")
     WORK = Path("/content/out")
-elif IS_KAGGLE:
-    ROOT = Path("/kaggle/working/Leffa")
-    CKPT_CACHE = None          # attach the weights as a Kaggle dataset instead
-    WORK = Path("/kaggle/working/out")
 else:
     ROOT = Path("./Leffa")
     CKPT_CACHE = Path("./leffa_ckpts")
@@ -117,7 +121,19 @@ else:
 # private dataset named "fabric-advisor" (Add Input -> Datasets -> your upload).
 # Nothing needs to be public.
 if IS_KAGGLE:
-    CODE = Path("/kaggle/input/fabric-advisor/src")
+    # Kaggle normalises dataset slugs, so don't assume the folder name matches
+    # what you typed. Find the package instead of guessing at a path.
+    found = sorted(Path("/kaggle/input").glob("*/src/fabric_advisor/__init__.py"))
+    if not found:
+        found = sorted(Path("/kaggle/input").glob("**/fabric_advisor/__init__.py"))
+    if not found:
+        raise SystemExit(
+            "fabric_advisor not found under /kaggle/input. Attach the dataset "
+            "via Add Input -> Datasets, then re-run this cell. Available: "
+            + str([d.name for d in Path("/kaggle/input").glob("*")])
+        )
+    CODE = found[0].parents[2]
+    print("found package at", found[0])
 else:
     # Colab cannot clone a private repo without a credential, and putting a
     # token in a notebook cell is how tokens leak. Upload the same zip to Drive
