@@ -317,6 +317,21 @@ print(f"\n{len(control_garments)} control garments:", [p.name for p in control_g
 #   ambiguous — you cannot tell a garment-category problem from a broken setup.
 
 # %%
+import logging
+import warnings
+
+# Diffusers re-emits the same deprecation warnings on every one of the 30
+# denoising steps, which buries the one line per generation that actually
+# matters. Silence the noise, not the errors: exceptions still propagate.
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+logging.getLogger("diffusers").setLevel(logging.ERROR)
+try:
+    from diffusers.utils import logging as diffusers_logging
+    diffusers_logging.set_verbosity_error()
+except ImportError:
+    pass
+
 from fabric_advisor.render.tryon import LeffaBackend, TryOnRequest
 
 backend = LeffaBackend(repo_root=ROOT)
@@ -360,7 +375,9 @@ for person_path in people[:4]:
                 "motif_cm": motif_cm, "result": res.image,
                 "mask": res.meta["mask"], "source": garment, "seconds": res.seconds,
             })
-            print(f"  {stem}  {res.seconds:.1f}s")
+            done = len(results)
+            total = len(people[:4]) * len(jobs)
+            print(f"  [{done:>2}/{total}] {stem}  {res.seconds:.0f}s")
 
 print(f"\n{len(results)} generations")
 
