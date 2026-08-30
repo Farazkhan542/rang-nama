@@ -176,15 +176,11 @@ if CODE is None:
         print(f"using cloned repo: {CODE}")
 
 if CODE is None:
-    raise SystemExit(
-        "fabric_advisor not available.
-"
-        "  Option A: Add Input -> Upload -> dist/fabric-advisor.zip, then re-run.
-"
-        f"  Option B: make {GITHUB_REPO} public, then re-run.
-"
-        f"  Attached inputs: {[d.name for d in Path('/kaggle/input').glob('*')]}"
-    )
+    print("fabric_advisor not available.")
+    print("  Option A: Add Input -> Upload -> dist/fabric-advisor.zip, then re-run.")
+    print(f"  Option B: make {GITHUB_REPO} public, then re-run.")
+    print(f"  Attached inputs: {[d.name for d in Path('/kaggle/input').glob('*')]}")
+    raise SystemExit("fabric_advisor not available")
 
 !pip install -q numpy scipy pillow
 
