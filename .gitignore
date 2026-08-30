@@ -48,3 +48,7 @@ ckpts/
 # OS
 .DS_Store
 Thumbs.db
+
+# Result archives from GPU runs. Large, binary, and regenerable.
+*.zip
+leffa_ood_results*
