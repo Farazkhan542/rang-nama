@@ -52,3 +52,7 @@ Thumbs.db
 # Result archives from GPU runs. Large, binary, and regenerable.
 *.zip
 leffa_ood_results*
+
+# Extension build deps. dist/ IS committed so the extension loads unpacked
+# straight from a clone, without a build step.
+extension/node_modules/

@@ -3,13 +3,20 @@
   "name": "Rang Nama",
   "version": "0.1.0",
   "description": "Does this fabric suit you? Colour and print advice on unstitched Pakistani fabric, computed in your browser.",
-  "permissions": ["storage"],
-  "host_permissions": ["https://pk.khaadi.com/*"],
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://pk.khaadi.com/*"
+  ],
   "content_scripts": [
     {
-      "matches": ["https://pk.khaadi.com/*"],
-      "js": ["dist/content.js"],
-      "css": ["dist/panel.css"],
+      "matches": [
+        "https://pk.khaadi.com/*"
+      ],
+      "js": [
+        "dist/content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
