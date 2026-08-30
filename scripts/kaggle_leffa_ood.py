@@ -146,45 +146,49 @@ else:
 !df -h /kaggle/working 2>/dev/null | tail -1 || df -h . | tail -1
 
 # %%
-# The fabric_advisor package. On Kaggle: attach dist/fabric-advisor.zip as a
-# private dataset named "fabric-advisor" (Add Input -> Datasets -> your upload).
-# Nothing needs to be public.
-if IS_KAGGLE:
-    # Kaggle normalises dataset slugs, so don't assume the folder name matches
-    # what you typed. Find the package instead of guessing at a path.
-    found = sorted(Path("/kaggle/input").glob("*/src/fabric_advisor/__init__.py"))
-    if not found:
-        found = sorted(Path("/kaggle/input").glob("**/fabric_advisor/__init__.py"))
-    if not found:
-        raise SystemExit(
-            "fabric_advisor not found under /kaggle/input. Attach the dataset "
-            "via Add Input -> Datasets, then re-run this cell. Available: "
-            + str([d.name for d in Path("/kaggle/input").glob("*")])
-        )
-    CODE = found[0].parents[2]
-    print("found package at", found[0])
-else:
-    # Colab cannot clone a private repo without a credential, and putting a
-    # token in a notebook cell is how tokens leak. Upload the same zip to Drive
-    # and unzip it instead.
-    ZIP = Path("/content/drive/MyDrive/fabric-advisor.zip")
-    if ZIP.exists():
-        !unzip -oq {ZIP} -d /content/fabric-advisor
-        CODE = Path("/content/fabric-advisor/src")
-    else:
-        raise SystemExit(
-            f"Upload dist/fabric-advisor.zip to Drive at {ZIP}, or make the repo "
-            "public and clone it here."
-        )
+# The fabric_advisor package. Two ways in, tried in order, so a failed dataset
+# upload does not strand the run:
+#
+#   1. A Kaggle dataset  - Add Input -> Upload -> dist/fabric-advisor.zip
+#   2. git clone         - only if the GitHub repo is public
+#
+# No token goes in this notebook either way. Putting a GitHub token in a cell
+# is how tokens leak, and notebook outputs are saved with the version.
+GITHUB_REPO = "https://github.com/Farazkhan542/rang-nama.git"
+
+CODE = None
+
+# 1. Attached Kaggle dataset. Glob rather than assume a slug: Kaggle normalises
+#    dataset names, and the zip may or may not preserve the src/ wrapper.
+hits = sorted(Path("/kaggle/input").glob("**/fabric_advisor/__init__.py")) if IS_KAGGLE else []
+if hits:
+    CODE = hits[0].parents[1]
+    print(f"using attached dataset: {hits[0]}")
+
+# 2. Public repo.
+if CODE is None:
+    clone_to = Path("/kaggle/working/code" if IS_KAGGLE else "./code")
+    if not (clone_to / "src" / "fabric_advisor" / "__init__.py").exists():
+        !rm -rf {clone_to}
+        !git clone -q --depth 1 {GITHUB_REPO} {clone_to} 2>/dev/null || true
+    if (clone_to / "src" / "fabric_advisor" / "__init__.py").exists():
+        CODE = clone_to / "src"
+        print(f"using cloned repo: {CODE}")
+
+if CODE is None:
+    raise SystemExit(
+        "fabric_advisor not available.
+"
+        "  Option A: Add Input -> Upload -> dist/fabric-advisor.zip, then re-run.
+"
+        f"  Option B: make {GITHUB_REPO} public, then re-run.
+"
+        f"  Attached inputs: {[d.name for d in Path('/kaggle/input').glob('*')]}"
+    )
 
 !pip install -q numpy scipy pillow
 
-assert (CODE / "fabric_advisor" / "render" / "flatlay.py").exists(), (
-    f"fabric_advisor not found under {CODE}. On Kaggle, check the dataset is "
-    "attached and that the zip contains a top-level src/ folder."
-)
 sys.path.insert(0, str(CODE))
-
 from fabric_advisor.render.flatlay import synthetic_template  # noqa: F401
 print("code loaded from", CODE)
 
