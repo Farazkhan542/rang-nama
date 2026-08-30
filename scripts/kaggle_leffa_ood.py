@@ -104,17 +104,40 @@ from huggingface_hub import snapshot_download
 
 CKPTS = ROOT / "ckpts"
 
-# ~10 GB: try-on weights plus SCHP, OpenPose and DensePose preprocessors.
+# The full repo is 34 GiB and will not fit in Kaggle's 20 GiB /kaggle/working.
+# Most of that is weight we never touch:
+#
+#   pose_transfer.pth      19.4 GiB  - pose transfer, not try-on
+#   virtual_tryon_dc.pth    6.7 GiB  - the DressCode variant; we use VITON-HD
+#   schp/*.pth              0.5 GiB  - superseded by the ONNX parsers below
+#
+# Note that stable-diffusion-inpainting/ here is *configs only* - three small
+# JSON files. The actual diffusion weights live inside virtual_tryon.pth, so
+# there is no separate Stable Diffusion download.
+ALLOW = [
+    "virtual_tryon.pth",                 # VITON-HD try-on weights (6.7 GiB)
+    "humanparsing/*",                    # SCHP parsers, ONNX (0.5 GiB)
+    "densepose/*",                       # DensePose weights + configs
+    "openpose/*",                        # body pose model
+    "stable-diffusion-inpainting/*",     # configs the model loader expects
+    "examples/*",                        # bundled people and garments
+]
+
 if CKPT_CACHE and (CKPT_CACHE / "virtual_tryon.pth").exists():
     print(f"reusing cached checkpoints from {CKPT_CACHE}")
     !ln -sfn {CKPT_CACHE} {CKPTS}
 else:
     target = CKPT_CACHE or CKPTS
-    snapshot_download(repo_id="franciszzj/Leffa", local_dir=str(target))
+    # Clear any partial download from a previous failed attempt, or its
+    # leftovers eat the disk budget this fix is trying to free.
+    !rm -rf {target}
+    snapshot_download(repo_id="franciszzj/Leffa", local_dir=str(target),
+                      allow_patterns=ALLOW, max_workers=4)
     if CKPT_CACHE:
         !ln -sfn {CKPT_CACHE} {CKPTS}
 
 !du -sh {CKPTS}/ 2>/dev/null || true
+!df -h /kaggle/working 2>/dev/null | tail -1 || df -h . | tail -1
 
 # %%
 # The fabric_advisor package. On Kaggle: attach dist/fabric-advisor.zip as a
