@@ -327,14 +327,50 @@ def compare_print(source: Image.Image, result: Image.Image,
 
 # Thresholds for a pass/fail read. Deliberately explicit so they can be argued
 # with rather than buried in a comparison.
+#
+# A WORD ON delta_e_mean_max. The first version of this set it to 10.0 on the
+# reasoning that dE > 10 reads as a different colour. That is true of two flat
+# swatches and false here: comparing a garment photographed flat against the
+# same garment worn, shaded, folded and lit, lands around dE 20 even when the
+# transfer is perfect. The in-distribution control proved it by scoring 19.7 -
+# worse than the out-of-distribution treatment it was meant to bound.
+#
+# So the absolute number below is a smoke test, not a verdict. The real measure
+# is `relative_to_control`: run the same comparison on a garment the model was
+# trained on, and ask whether the garment you care about does worse. An
+# absolute threshold on a quantity nobody has calibrated is just a guess with a
+# number attached.
 THRESHOLDS = {
-    # dE > 10 reads as a different colour to an ordinary viewer.
-    "delta_e_mean_max": 10.0,
+    # Loose smoke test only. Use compare_to_control for a real read.
+    "delta_e_mean_max": 32.0,
     # A repeat off by more than a quarter breaks a verdict stated in centimetres.
     "motif_scale_tolerance": 0.25,
     # A kurta needs the mask to reach at least this far down the frame.
     "mask_bottom_min": 0.60,
 }
+
+
+def compare_to_control(treatment_de: float, control_de: float,
+                       tolerance: float = 1.15) -> tuple[bool, str]:
+    """Is the out-of-distribution garment worse than the in-distribution one?
+
+    The only honest read available here. Absolute CIEDE2000 between a flat
+    garment and a worn one has no calibrated "good" value, but the control does
+    give a floor: whatever the model achieves on data it was trained on is as
+    good as it gets. Anything at or near that is not degraded by being
+    out of distribution.
+    """
+    if control_de <= 0:
+        return False, "no control measurement to compare against"
+    ratio = treatment_de / control_de
+    if ratio <= 1.0:
+        return True, (f"dE {treatment_de:.1f} vs control {control_de:.1f} "
+                      f"({ratio:.2f}x) - not degraded relative to in-distribution")
+    if ratio <= tolerance:
+        return True, (f"dE {treatment_de:.1f} vs control {control_de:.1f} "
+                      f"({ratio:.2f}x) - within tolerance of in-distribution")
+    return False, (f"dE {treatment_de:.1f} vs control {control_de:.1f} "
+                   f"({ratio:.2f}x) - materially worse than in-distribution")
 
 
 def verdict(metrics: dict, extent: dict) -> tuple[bool, list[str]]:
