@@ -6,11 +6,12 @@
 // win about half the time. Shadow DOM makes that impossible rather than
 // unlikely, which is worth more than the small awkwardness of inlining styles.
 
-import { hexToLab } from "../engine/colour.js";
+import { deltaE2000, hexToLab } from "../engine/colour.js";
 import {
   classifyContrast, classifyDepth, classifyUndertone, selectSeason,
 } from "../engine/palette.js";
 import { buildFrame, buildVerdict } from "../engine/verdict.js";
+import { colouringFromPhoto, readPhoto } from "../lib/colouring.js";
 import { HAIR_LADDER, SKIN_LADDER, saveProfile } from "../lib/storage.js";
 
 const CSS = `
@@ -99,6 +100,28 @@ button.go {
 button.go:hover { background: #26327a; }
 
 .msg { font-size: 13px; color: #8e8fa0; }
+
+.photo {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  border: 1.5px dashed #dddad2; border-radius: 5px; padding: 16px 12px;
+  cursor: pointer; text-align: center; color: #5b5d70; font-size: 13px;
+  margin-bottom: 14px; background: #fbfaf8;
+}
+.photo:hover { border-color: #2f3d8f; background: #f4f5fb; }
+.photo b { font-weight: 600; color: #191b2e; }
+.photo small { font-size: 11px; color: #8e8fa0; }
+.photo.busy { opacity: .6; pointer-events: none; }
+
+.or {
+  text-align: center; font-size: 10px; letter-spacing: .1em; color: #b3b2be;
+  text-transform: uppercase; margin: 0 0 12px;
+}
+.found {
+  display: flex; align-items: center; gap: 8px; font-size: 12px;
+  color: #0f7a5a; background: #e3f2ec; padding: 7px 10px; border-radius: 4px;
+  margin-bottom: 12px;
+}
+.found i { width: 18px; height: 18px; border-radius: 3px; border: 1px solid rgba(0,0,0,.15); }
 .err { font-size: 12px; color: #b0472b; background: #f8e6df; padding: 8px 10px; border-radius: 3px; }
 
 .tab {
@@ -194,16 +217,79 @@ export class Panel {
     this.frame([p]);
   }
 
-  /** Onboarding: the photo-free path. No camera, no upload, no permission. */
+  /** Onboarding.
+   *
+   *  Photo first, because that is what people ask for, with the swatch ladder
+   *  underneath as an equal alternative rather than a fallback. The photo is
+   *  read into a canvas, measured, and discarded: it never leaves the machine,
+   *  and there is nowhere for it to go, since the extension makes no network
+   *  requests at all.
+   */
   onboarding(profile, onDone) {
     this.draft = { ...profile };
     const nodes = [];
+    const setters = {};
 
-    const intro = document.createElement("p");
-    intro.className = "msg";
-    intro.style.marginTop = "0";
-    intro.textContent = "Pick the closest match. This stays on your device.";
-    nodes.push(intro);
+    const drop = document.createElement("label");
+    drop.className = "photo";
+    drop.innerHTML =
+      "<b>Use a photo of yourself</b>" +
+      "<small>Never uploaded &mdash; read on your device and discarded</small>";
+    const file = document.createElement("input");
+    file.type = "file";
+    file.accept = "image/*";
+    file.hidden = true;
+    drop.appendChild(file);
+    nodes.push(drop);
+
+    const found = document.createElement("div");
+    found.className = "found";
+    found.hidden = true;
+    nodes.push(found);
+
+    const err = document.createElement("p");
+    err.className = "err";
+    err.hidden = true;
+    nodes.push(err);
+
+    file.addEventListener("change", async () => {
+      const f = file.files?.[0];
+      if (!f) return;
+      drop.classList.add("busy");
+      err.hidden = true;
+      try {
+        const imageData = await readPhoto(f);
+        const r = colouringFromPhoto(imageData);
+        if (!r.ok) throw new Error(r.error);
+
+        this.draft.skin = r.skinHex;
+        this.draft.hair = r.hairHex;
+        setters.skin?.(r.skinHex);
+        setters.hair?.(r.hairHex);
+
+        found.replaceChildren();
+        const si = document.createElement("i");
+        si.style.background = r.skinHex;
+        const hi = document.createElement("i");
+        hi.style.background = r.hairHex;
+        const label = document.createElement("span");
+        label.textContent = r.hairFound
+          ? `Read from ${r.skinCount.toLocaleString()} skin pixels`
+          : "Skin read. Hair not visible — pick it below if you like";
+        found.append(si, hi, label);
+        found.hidden = false;
+      } catch (e) {
+        err.textContent = e.message;
+        err.hidden = false;
+      } finally {
+        drop.classList.remove("busy");
+      }
+    });
+
+    const or = document.createElement("p");
+    or.className = "or";
+    or.textContent = "or pick the closest match";
+    nodes.push(or);
 
     const ladder = (labelText, key, values) => {
       const field = document.createElement("div");
@@ -213,20 +299,35 @@ export class Panel {
       label.textContent = labelText;
       const chips = document.createElement("div");
       chips.className = "chips";
+      const buttons = [];
       for (const hex of values) {
         const b = document.createElement("button");
         b.className = "chip";
         b.type = "button";
         b.style.background = hex;
+        b.dataset.hex = hex;
         b.setAttribute("aria-label", `${labelText} ${hex}`);
         b.setAttribute("aria-pressed", String(this.draft[key] === hex));
         b.addEventListener("click", () => {
           this.draft[key] = hex;
-          [...chips.children].forEach((c) => c.setAttribute("aria-pressed", "false"));
+          buttons.forEach((c) => c.setAttribute("aria-pressed", "false"));
           b.setAttribute("aria-pressed", "true");
         });
+        buttons.push(b);
         chips.appendChild(b);
       }
+      // A measured colour will not equal a ladder rung, so mark the nearest
+      // rather than leaving every chip unselected and the panel looking broken.
+      setters[key] = (hex) => {
+        const target = hexToLab(hex);
+        let best = buttons[0], bestD = Infinity;
+        for (const b of buttons) {
+          const d = deltaE2000(target, hexToLab(b.dataset.hex));
+          if (d < bestD) { bestD = d; best = b; }
+        }
+        buttons.forEach((c) => c.setAttribute("aria-pressed", "false"));
+        best.setAttribute("aria-pressed", "true");
+      };
       field.append(label, chips);
       return field;
     };
