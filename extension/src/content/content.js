@@ -104,10 +104,11 @@ async function run() {
 
   const saved = await loadProfile();
   if (saved) {
+    // Open, not collapsed. Starting as a pill in the corner made a working
+    // panel indistinguishable from a broken one - the verdict was computed
+    // correctly and simply never seen. The minimise control is right there for
+    // anyone who wants it out of the way.
     show(saved);
-    // Start collapsed once the profile exists: a shopper who has already told
-    // us their colouring wants a glanceable answer, not a panel over the page.
-    panel.collapse(panel.lastBand, panel.lastScore);
   } else {
     panel.onboarding(DEFAULT_PROFILE, show);
   }
