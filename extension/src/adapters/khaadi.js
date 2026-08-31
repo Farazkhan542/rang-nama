@@ -52,9 +52,28 @@ function readSku() {
       || attr("[data-pid]", "data-pid");
 }
 
+/** The filename stem shared by every photograph of one product.
+ *
+ *  SKU  A22-26-201FC1-VG_MULTI
+ *  file a22-26-201fc1_multi_1.jpg
+ *
+ *  Needed because scraping the page for image URLs also catches the Einstein
+ *  recommendation carousels, which Khaadi injects client-side after load. The
+ *  server HTML contains only this product; the live DOM does not. Without
+ *  filtering, the extension confidently measured a recommended product and
+ *  showed a verdict for a fabric the shopper was not looking at.
+ */
+function skuStem(sku) {
+  if (!sku) return null;
+  const low = sku.toLowerCase();
+  // Trim the colourway suffix: -VG_MULTI, -BL_BLUE and similar.
+  const m = low.match(/^(.*?)-[a-z]{2}[_-]/);
+  return (m ? m[1] : low.split("_")[0]) || null;
+}
+
 /** Images. The tile carries several resolutions as data attributes; the PDP
  *  exposes hi-res paths inline. Collect both, dedupe, prefer larger. */
-function readImages() {
+function readImages(sku) {
   const out = new Set();
 
   for (const el of document.querySelectorAll(".image-container, .product-tile")) {
@@ -93,7 +112,27 @@ function readImages() {
       byFile.set(file, u);
     }
   }
-  return [...byFile.values()];
+
+  const stem = skuStem(sku);
+  let files = [...byFile.entries()];
+
+  if (stem) {
+    const mine = files.filter(([file]) => file.startsWith(stem));
+    // Only apply the filter when it actually finds something. A SKU format
+    // this does not understand should degrade to the old behaviour rather
+    // than leaving the panel with no image at all.
+    if (mine.length) files = mine;
+  }
+
+  // Khaadi numbers its shots _1.._n, and _1 is the front view. Ordering by
+  // that suffix makes "first image" mean the front of the garment rather than
+  // whichever URL the regex happened to reach first.
+  files.sort(([a], [b]) => {
+    const n = (f) => Number(f.match(/_(\d+)\.jpg$/)?.[1] ?? 99);
+    return n(a) - n(b);
+  });
+
+  return files.map(([, url]) => url);
 }
 
 /** Weave and embellishment. Khaadi states these outright in an embedded JSON
@@ -135,7 +174,7 @@ export function extract() {
   const sku = readSku();
   if (!sku) warnings.push("sku not found");
 
-  const images = readImages();
+  const images = readImages(sku);
   if (!images.length) warnings.push("no product images found");
 
   const { weave, embellishment } = readFabricDetail();

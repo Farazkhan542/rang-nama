@@ -46,6 +46,8 @@ async function measure(product) {
     return out;
   };
 
+  console.log("[rangnama] measuring:", url.split("/").pop().split("?")[0]);
+
   const started = performance.now();
   const imageData = await loadImageData(url, 480);
   console.log(`[rangnama] image load+decode: ${(performance.now() - started).toFixed(0)}ms`,
