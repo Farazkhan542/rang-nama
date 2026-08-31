@@ -7,11 +7,16 @@
 // weave is still worth a colour verdict, and a silent partial failure is far
 // worse than a noted one.
 
-/** Khaadi's image CDN takes the output size as query parameters, so full
- *  resolution is a URL rewrite rather than a separate request to discover.
- *  Colour sampling wants real pixels — the 400px thumbnails carry visible
- *  JPEG artefacts that shift a measured dominant colour. */
-function upscale(url, width = 1200, height = 1800) {
+/** Khaadi's image CDN takes the output size as query parameters, so the
+ *  delivered resolution is a URL rewrite rather than a fixed asset.
+ *
+ *  760px, not 1200. Colour sampling does want real pixels - the 400px
+ *  thumbnails carry JPEG artefacts heavy enough to shift a measured dominant
+ *  colour - but the analysis downsamples to 480 anyway, so everything above
+ *  that was bytes fetched and thrown away. Downloading 1200x1800 cost 946ms
+ *  of a 1.2s measurement.
+ */
+function upscale(url, width = 760, height = 1140) {
   if (!url) return url;
   const abs = url.startsWith("http") ? url : `https://pk.khaadi.com${url}`;
   try {
