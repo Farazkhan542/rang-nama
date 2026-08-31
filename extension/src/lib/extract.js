@@ -254,8 +254,12 @@ export function dominantColours(imageData, {
   maxSamples = 12000,
   excludeBackground = true,
   excludeSkin = false,
+  mask: providedMask = null,
 } = {}) {
-  const mask = excludeBackground ? backgroundMask(imageData) : null;
+  // Accept a mask the caller already computed. The flood fill is the most
+  // expensive step in the pipeline, and the render needs the same mask, so
+  // recomputing it here doubled the work for no benefit.
+  const mask = providedMask ?? (excludeBackground ? backgroundMask(imageData) : null);
   const pixels = samplePixels(imageData, mask, maxSamples, excludeSkin);
   if (pixels.length < 50) return [];
   return kmeansLab(pixels, k);

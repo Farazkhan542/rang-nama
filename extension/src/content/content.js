@@ -39,29 +39,52 @@ async function measure(product) {
   const url = pickFabricImage(product.images);
   if (!url) throw new Error("no product photograph found on this page");
 
-  const imageData = await loadImageData(url, 640);
-  const mask = backgroundMask(imageData);
-  const colours = dominantColours(imageData, { k: 3 });
+  const t = (label, fn) => {
+    const started = performance.now();
+    const out = fn();
+    console.log(`[rangnama] ${label}: ${(performance.now() - started).toFixed(0)}ms`);
+    return out;
+  };
+
+  const started = performance.now();
+  const imageData = await loadImageData(url, 480);
+  console.log(`[rangnama] image load+decode: ${(performance.now() - started).toFixed(0)}ms`,
+              `${imageData.width}x${imageData.height}`);
+
+  const mask = t("background mask", () => backgroundMask(imageData));
+  const colours = t("dominant colours", () => dominantColours(imageData, { k: 3, mask }));
 
   if (colours.length === 0) {
     throw new Error("could not read colours from the product photograph");
   }
-  // Reuse the same mask for the render, so the patch comes from cloth rather
-  // than from the studio background beside it.
-  return { colours, patch: fabricPatch(imageData, mask) };
+  // Same mask for the render, so the patch comes from cloth rather than from
+  // the studio background beside it.
+  const patch = t("fabric patch", () => fabricPatch(imageData, mask));
+  return { colours, patch };
 }
 
 async function run() {
-  if (!isProductPage()) return;
+  if (!isProductPage()) {
+    console.log("[rangnama] not a product page, standing down:", location.pathname);
+    return;
+  }
 
   const adapter = ADAPTERS.find((a) => a.matches());
   if (!adapter) return;
 
-  const product = adapter.extract();
-  if (!product.images.length) return;
-
+  // Panel first, before any measurement. If extraction is slow or throws, the
+  // shopper sees something rather than wondering whether it is installed.
   const panel = new Panel();
   panel.message("Reading this fabric…");
+
+  const product = adapter.extract();
+  console.log("[rangnama] product:", product.sku, "|", product.images.length,
+              "images | warnings:", product.warnings);
+
+  if (!product.images.length) {
+    panel.error("No product photograph found on this page.");
+    return;
+  }
 
   let measured;
   try {
@@ -92,14 +115,21 @@ async function run() {
 
 // Marketplaces on SFCC swap product content without a full navigation, so a
 // one-shot run on load misses every subsequent product the shopper views.
+//
+// Watching the whole subtree for mutations was too blunt: Khaadi's carousels,
+// lazy images and analytics fire constantly, so the callback ran thousands of
+// times a second to check a string. Poll the path instead - once a second is
+// far more responsive than a shopper can click, and costs nothing.
 let lastPath = location.pathname;
-const observer = new MutationObserver(() => {
-  if (location.pathname !== lastPath) {
-    lastPath = location.pathname;
-    document.getElementById("rangnama-root")?.remove();
-    run();
-  }
-});
-observer.observe(document.body, { childList: true, subtree: true });
+setInterval(() => {
+  if (location.pathname === lastPath) return;
+  lastPath = location.pathname;
+  document.getElementById("rangnama-root")?.remove();
+  run();
+}, 1000);
 
-run();
+// Any uncaught error here means no panel at all, which is indistinguishable
+// from the extension not being installed. Say so in the console at least.
+run().catch((err) => {
+  console.error("[rangnama] failed to start:", err);
+});
