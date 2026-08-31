@@ -12,6 +12,7 @@ import {
 } from "../engine/palette.js";
 import { buildFrame, buildVerdict } from "../engine/verdict.js";
 import { colouringFromPhoto, readPhoto } from "../lib/colouring.js";
+import { renderGarment } from "../lib/garment.js";
 import { HAIR_LADDER, SKIN_LADDER, saveProfile } from "../lib/storage.js";
 
 const CSS = `
@@ -61,6 +62,12 @@ const CSS = `
 .num { font-variant-numeric: tabular-nums; font-size: 12px; color: #5b5d70; min-width: 44px; text-align: right; }
 
 .swatches { display: flex; gap: 0; height: 26px; border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+
+.garment { text-align: center; margin: 0 0 12px; }
+.garment canvas { max-width: 100%; height: auto; display: inline-block; }
+.garment figcaption {
+  font-size: 11px; color: #8e8fa0; margin-top: 4px;
+}
 .swatches i { flex: 1; }
 
 ul.reasons { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -374,7 +381,7 @@ export class Panel {
   }
 
   /** The verdict card. */
-  verdict(product, colours, profile, onEdit) {
+  verdict(product, colours, profile, onEdit, garmentPatch = null) {
     const skin = hexToLab(profile.skin);
     const hair = hexToLab(profile.hair);
     const season = selectSeason(
@@ -414,6 +421,23 @@ export class Panel {
     num.textContent = `${v.score.toFixed(0)}/100`;
     meter.append(track, num);
     nodes.push(meter);
+
+    // The fabric as a stitched kurta, built from the real print on this page.
+    // The shopper is being asked to buy cloth and imagine the garment; this is
+    // the part of the job the product photograph does not do.
+    if (garmentPatch) {
+      const fig = document.createElement("figure");
+      fig.className = "garment";
+      fig.style.margin = "0 0 12px";
+      const c = document.createElement("canvas");
+      fig.appendChild(c);
+      const cap = document.createElement("figcaption");
+      cap.textContent = `This fabric as a kurta · ${frame} frame · drape is illustrative`;
+      fig.appendChild(cap);
+      nodes.push(fig);
+      // Render after the node is in the tree so devicePixelRatio applies.
+      queueMicrotask(() => renderGarment(c, garmentPatch, frame, null));
+    }
 
     const sw = document.createElement("div");
     sw.className = "swatches";

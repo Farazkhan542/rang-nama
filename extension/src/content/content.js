@@ -6,7 +6,8 @@
 // permissions beyond the site it runs on and no API key exists to leak.
 
 import * as khaadi from "../adapters/khaadi.js";
-import { dominantColours, loadImageData } from "../lib/extract.js";
+import { backgroundMask, dominantColours, loadImageData } from "../lib/extract.js";
+import { fabricPatch } from "../lib/garment.js";
 import { DEFAULT_PROFILE, loadProfile } from "../lib/storage.js";
 import { Panel } from "./panel.js";
 
@@ -39,12 +40,15 @@ async function measure(product) {
   if (!url) throw new Error("no product photograph found on this page");
 
   const imageData = await loadImageData(url, 640);
+  const mask = backgroundMask(imageData);
   const colours = dominantColours(imageData, { k: 3 });
 
   if (colours.length === 0) {
     throw new Error("could not read colours from the product photograph");
   }
-  return colours;
+  // Reuse the same mask for the render, so the patch comes from cloth rather
+  // than from the studio background beside it.
+  return { colours, patch: fabricPatch(imageData, mask) };
 }
 
 async function run() {
@@ -59,9 +63,9 @@ async function run() {
   const panel = new Panel();
   panel.message("Reading this fabric…");
 
-  let colours;
+  let measured;
   try {
-    colours = await measure(product);
+    measured = await measure(product);
   } catch (err) {
     // Say what failed. A panel that silently shows nothing is indistinguishable
     // from an extension that is not installed.
@@ -70,8 +74,9 @@ async function run() {
   }
 
   const show = (profile) => panel.verdict(
-    product, colours, profile,
-    () => panel.onboarding(profile, show)
+    product, measured.colours, profile,
+    () => panel.onboarding(profile, show),
+    measured.patch
   );
 
   const saved = await loadProfile();
