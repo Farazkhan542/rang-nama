@@ -114,15 +114,12 @@ function readImages(sku) {
   const og = attr('meta[property="og:image"]', "content");
   if (og) out.add(upscale(og));
 
-  // The "t-" prefix marks thumbnails on this CDN; they are too small to sample.
-  const full = [...out].filter((u) => !/\/t-[a-z0-9_\-]+\.jpg/i.test(u));
-
   // Khaadi serves each image under two path prefixes - a bare
   // /on/demandware.static/... and a /dw/image/v2/... variant that accepts sw
   // and sh. They are the same picture, so a URL-keyed Set does not dedupe
   // them; key on the filename and prefer the resizable form.
   const byFile = new Map();
-  for (const u of full) {
+  for (const u of [...out]) {
     const file = u.split("/").pop().split("?")[0];
     const existing = byFile.get(file);
     if (!existing || (!existing.includes("sw=") && u.includes("sw="))) {
@@ -133,12 +130,28 @@ function readImages(sku) {
   const stems = skuStems(sku);
   let files = [...byFile.entries()];
 
-  if (stems.length) {
-    const mine = files.filter(([file]) => stems.some((s) => file.startsWith(s)));
-    // Only narrow when it actually finds something. A SKU shape this does not
-    // understand should fall back to every image on the page rather than
-    // leaving the panel with none.
-    if (mine.length) files = mine;
+  // Narrow by SKU first, and let that decide what a "t-" filename means.
+  //
+  // An earlier version dropped every t-prefixed file as a thumbnail. That is
+  // true on an unstitched listing, where t-a11-26-216fa1_multi_1.jpg sits
+  // beside the full-size a11-26-216fa1_multi_1.jpg. It is false for tailored
+  // products, whose SKU *is* T-A22-26-202FD2-VG_MULTI and whose photographs
+  // are named t-a22-26-202fd2_multi_1.jpg. The filter deleted the product's
+  // own images and the panel reported no photograph at all.
+  //
+  // The SKU already distinguishes them, so no filename heuristic is needed:
+  // a thumbnail of an unstitched product does not match that product's stem,
+  // and a tailored product's photographs do.
+  const matched = stems.length
+    ? files.filter(([file]) => stems.some((s) => file.startsWith(s)))
+    : [];
+
+  if (matched.length) {
+    files = matched;
+  } else {
+    // No SKU match, so fall back to every image on the page - minus the
+    // thumbnails, which are too small to sample colour from reliably.
+    files = files.filter(([file]) => !/^t-/i.test(file));
   }
 
   // Khaadi numbers its shots _1.._n, and _1 is the front view. Ordering by
