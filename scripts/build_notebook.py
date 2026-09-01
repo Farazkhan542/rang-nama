@@ -14,8 +14,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "scripts" / "kaggle_leffa_ood.py"
-DST = ROOT / "scripts" / "leffa_ood_test.ipynb"
+SRC = ROOT / "scripts" / (sys.argv[1] if len(sys.argv) > 1 else "kaggle_leffa_ood.py")
+DST = SRC.with_suffix(".ipynb")
 
 
 def strip_magics(code: str) -> str:
