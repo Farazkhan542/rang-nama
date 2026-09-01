@@ -55,4 +55,5 @@ leffa_ood_results*
 
 # Extension build deps. dist/ IS committed so the extension loads unpacked
 # straight from a clone, without a build step.
+node_modules/
 extension/node_modules/
