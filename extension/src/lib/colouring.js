@@ -185,16 +185,51 @@ function detectColouring(data, w, h) {
     };
   }
 
-  const faceW = best.maxX - best.minX + 1;
-  const faceH = best.maxY - best.minY + 1;
+  let faceW = best.maxX - best.minX + 1;
+  let faceH = best.maxY - best.minY + 1;
 
-  // Sample the middle of the blob, away from hairline, jaw and shadow.
+  // Reunite the pieces of a fragmented face.
+  //
+  // Spectacles cut a dark bar across the middle of a face and a beard covers
+  // the lower half, so a real face is frequently not one blob but several -
+  // forehead, one cheek, the other cheek. Taking only the largest samples a
+  // forehead and throws the cheeks away, and on a bearded face in glasses the
+  // largest fragment can be a patch of temple.
+  //
+  // Any skin region sitting inside a modest expansion of the winner is part of
+  // the same face. A hand or a wall is further away, or is disqualified by the
+  // frame-edge test above.
+  const near = new Set([best.id]);
+  const padX = faceW * 0.55, padY = faceH * 0.75;
+  for (const r of regions) {
+    if (r.id === best.id || r.size < 15) continue;
+    const rEdges =
+      (r.minX === 0 ? 1 : 0) + (r.minY === 0 ? 1 : 0) +
+      (r.maxX === cols - 1 ? 1 : 0) + (r.maxY === rows - 1 ? 1 : 0);
+    if (rEdges >= 2) continue;                      // scenery
+    if (r.size > best.size * 1.2) continue;         // something else entirely
+    const overlapsX = r.minX < best.maxX + padX && r.maxX > best.minX - padX;
+    const overlapsY = r.minY < best.maxY + padY && r.maxY > best.minY - padY;
+    if (overlapsX && overlapsY) near.add(r.id);
+  }
+
+  // Recompute the face box over every accepted fragment.
+  let fx0 = best.minX, fx1 = best.maxX, fy0 = best.minY, fy1 = best.maxY;
+  for (const r of regions) {
+    if (!near.has(r.id)) continue;
+    fx0 = Math.min(fx0, r.minX); fx1 = Math.max(fx1, r.maxX);
+    fy0 = Math.min(fy0, r.minY); fy1 = Math.max(fy1, r.maxY);
+  }
+  faceW = fx1 - fx0 + 1;
+  faceH = fy1 - fy0 + 1;
+
+  // Sample every accepted fragment, away from hairline, jaw and shadow.
   const sr = [], sg = [], sb = [];
-  const inset = 0.22;
-  for (let ry = Math.round(best.minY + faceH * inset); ry <= Math.round(best.maxY - faceH * inset); ry++) {
-    for (let rx = Math.round(best.minX + faceW * inset); rx <= Math.round(best.maxX - faceW * inset); rx++) {
+  const inset = 0.12;
+  for (let ry = Math.round(fy0 + faceH * inset); ry <= Math.round(fy1 - faceH * inset); ry++) {
+    for (let rx = Math.round(fx0 + faceW * inset); rx <= Math.round(fx1 - faceW * inset); rx++) {
       if (rx < 0 || ry < 0 || rx >= cols || ry >= rows) continue;
-      if (label[ry * cols + rx] !== best.id) continue;
+      if (!near.has(label[ry * cols + rx])) continue;
       const i = (ry * step * w + rx * step) * 4;
       sr.push(data[i]); sg.push(data[i + 1]); sb.push(data[i + 2]);
     }
@@ -229,10 +264,10 @@ function detectColouring(data, w, h) {
   }
 
   // Hair: a band above and around the face blob.
-  const hy0 = Math.max(0, Math.round(best.minY - faceH * 0.95));
-  const hy1 = Math.min(rows - 1, Math.round(best.minY + faceH * 0.18));
-  const hx0 = Math.max(0, Math.round(best.minX - faceW * 0.38));
-  const hx1 = Math.min(cols - 1, Math.round(best.maxX + faceW * 0.38));
+  const hy0 = Math.max(0, Math.round(fy0 - faceH * 0.95));
+  const hy1 = Math.min(rows - 1, Math.round(fy0 + faceH * 0.18));
+  const hx0 = Math.max(0, Math.round(fx0 - faceW * 0.38));
+  const hx1 = Math.min(cols - 1, Math.round(fx1 + faceW * 0.38));
 
   const cand = [];
   for (let ry = hy0; ry <= hy1; ry++) {
