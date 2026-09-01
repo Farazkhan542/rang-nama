@@ -62,93 +62,206 @@ const quantile = (sorted, p) => sorted[Math.min(sorted.length - 1, Math.floor(so
 /* Pure: pixels in, findings out. No DOM access anywhere in here, which is what
    lets it be exercised headlessly against synthetic portraits. */
 function detectColouring(data, w, h) {
-  const xs = [], ys = [];
-  for (let y = 0; y < h; y += 2) {
-    for (let x = 0; x < w; x += 2) {
-      const i = (y * w + x) * 4;
+  // Skin-coloured pixels, at half resolution: only the region matters here.
+  const step = 2;
+  const cols = Math.ceil(w / step), rows = Math.ceil(h / step);
+  const isSkinPx = new Uint8Array(cols * rows);
+  let skinCount = 0;
+
+  for (let ry = 0; ry < rows; ry++) {
+    for (let rx = 0; rx < cols; rx++) {
+      const i = (ry * step * w + rx * step) * 4;
       if (data[i + 3] < 200) continue;
-      if (isSkinPixel(data[i], data[i + 1], data[i + 2])) { xs.push(x); ys.push(y); }
-    }
-  }
-
-  if (xs.length < 60) {
-    return { ok: false, error: "No face found in this photo. Try a clearer, front-facing picture — or click your cheek to set it manually." };
-  }
-
-  // Face box from percentiles rather than a fixed radius around the median.
-  // Percentiles adapt to how much of the frame the face fills, so a tight
-  // headshot and a half-body photo both localise correctly.
-  const sx = xs.slice().sort((a, b) => a - b);
-  const sy = ys.slice().sort((a, b) => a - b);
-  const x0 = quantile(sx, 0.10), x1 = quantile(sx, 0.90);
-  const y0 = quantile(sy, 0.10), y1 = quantile(sy, 0.90);
-  const faceW = Math.max(8, x1 - x0), faceH = Math.max(8, y1 - y0);
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-
-  // Sample skin from the central core of the face box only. The edges are
-  // where hairline, ears, jaw shadow and background bleed in.
-  const sr = [], sg = [], sb = [];
-  const inset = 0.30;
-  for (let y = Math.round(y0 + faceH * inset); y <= Math.round(y1 - faceH * inset); y++) {
-    for (let x = Math.round(x0 + faceW * inset); x <= Math.round(x1 - faceW * inset); x++) {
-      if (x < 0 || y < 0 || x >= w || y >= h) continue;
-      const i = (y * w + x) * 4;
-      if (data[i + 3] < 200) continue;
-      if (!isSkinPixel(data[i], data[i + 1], data[i + 2])) continue;
-      sr.push(data[i]); sg.push(data[i + 1]); sb.push(data[i + 2]);
-    }
-  }
-  if (sr.length < 40) {
-    return { ok: false, error: "Face region too small to sample. Try a closer photo, or click your cheek." };
-  }
-
-  // Median, not mean: robust to shadow, stray hair and specular highlights.
-  const skinHex = toHex(median(sr), median(sg), median(sb));
-  const skinLab = hexToLab(skinHex);
-
-  // Hair sits in a band above and around the top of the face box. Searching a
-  // band rather than "everything above the face" keeps shoulders, clothing and
-  // background out of the sample.
-  const hy0 = Math.max(0, Math.round(y0 - faceH * 0.95));
-  const hy1 = Math.min(h - 1, Math.round(y0 + faceH * 0.18));
-  const hx0 = Math.max(0, Math.round(x0 - faceW * 0.38));
-  const hx1 = Math.min(w - 1, Math.round(x1 + faceW * 0.38));
-
-  const cand = [];
-  for (let y = hy0; y <= hy1; y++) {
-    for (let x = hx0; x <= hx1; x++) {
-      const i = (y * w + x) * 4;
-      if (data[i + 3] < 200) continue;
-      const lab = rgbToLab([data[i], data[i + 1], data[i + 2]]);
-      // Darker than skin by a clear margin, and not vividly coloured — that
-      // last test is what keeps a bright dupatta out of the hair sample.
-      if (lab.L < skinLab.L - 14 && chromaOf(lab) < 34) {
-        cand.push({ L: lab.L, r: data[i], g: data[i + 1], b: data[i + 2], x, y });
+      if (isSkinPixel(data[i], data[i + 1], data[i + 2])) {
+        isSkinPx[ry * cols + rx] = 1;
+        skinCount++;
       }
     }
   }
 
-  let hairHex = null, hairPt = null;
-  if (cand.length >= 40) {
-    // Take the darkest 55%: hair's own highlights are much lighter than its
-    // body, and including them washes the sample toward mid-brown.
+  if (skinCount < 40) {
+    return { ok: false, error: "No face found in this photo." };
+  }
+
+  // Largest connected region of skin, not percentiles over every skin pixel.
+  //
+  // Percentiles assume the only skin-coloured thing in frame is a face. In a
+  // real photograph a wooden door, a beige wall, a hand and a forearm all pass
+  // a colour gate, and the resulting centroid lands somewhere between them -
+  // which is why this worked on synthetic portraits with plain backgrounds and
+  // failed on actual photos. A face is one contiguous blob; a wall is another,
+  // and blobs can be told apart even when their colours cannot.
+  const label = new Int32Array(cols * rows).fill(-1);
+  const regions = [];
+  const queue = new Int32Array(cols * rows);
+
+  for (let seed = 0; seed < isSkinPx.length; seed++) {
+    if (!isSkinPx[seed] || label[seed] !== -1) continue;
+    const id = regions.length;
+    let head = 0, tail = 0, size = 0;
+    let minX = cols, maxX = 0, minY = rows, maxY = 0;
+
+    queue[tail++] = seed;
+    label[seed] = id;
+
+    while (head < tail) {
+      const p = queue[head++];
+      const x = p % cols, y = (p - x) / cols;
+      size++;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+
+      if (x > 0 && isSkinPx[p - 1] && label[p - 1] === -1) { label[p - 1] = id; queue[tail++] = p - 1; }
+      if (x < cols - 1 && isSkinPx[p + 1] && label[p + 1] === -1) { label[p + 1] = id; queue[tail++] = p + 1; }
+      if (y > 0 && isSkinPx[p - cols] && label[p - cols] === -1) { label[p - cols] = id; queue[tail++] = p - cols; }
+      if (y < rows - 1 && isSkinPx[p + cols] && label[p + cols] === -1) { label[p + cols] = id; queue[tail++] = p + cols; }
+    }
+    regions.push({ id, size, minX, maxX, minY, maxY });
+  }
+
+  if (!regions.length) {
+    return { ok: false, error: "No face found in this photo." };
+  }
+
+  // Pick the face among the skin-coloured blobs.
+  //
+  // Size alone is not enough and gets it wrong in the most common real
+  // scenario: a beige wall or a wooden door is skin-coloured, contiguous, and
+  // far larger than a head, so it wins on area every time. On a test scene
+  // with a warm wall behind a deep-skinned subject the wall was chosen and the
+  // reading was 47 dE from the truth.
+  //
+  // What separates them is the frame edge. A backdrop runs off the picture on
+  // several sides; a face is bounded on all four. Counting touched edges is a
+  // far stronger signal than area, so it is weighted accordingly.
+  let best = null, bestScore = -Infinity;
+  const area = cols * rows;
+
+  for (const r of regions) {
+    const rw = r.maxX - r.minX + 1, rh = r.maxY - r.minY + 1;
+    if (r.size < 30) continue;
+
+    const edges =
+      (r.minX === 0 ? 1 : 0) + (r.minY === 0 ? 1 : 0) +
+      (r.maxX === cols - 1 ? 1 : 0) + (r.maxY === rows - 1 ? 1 : 0);
+    // Two or more edges is scenery. One is a legitimately tight crop.
+    const bounded = edges === 0 ? 1 : edges === 1 ? 0.55 : 0.04;
+
+    const aspect = rw / rh;
+    const shape = aspect > 0.45 && aspect < 2.2 ? 1 : 0.35;
+
+    const fill = r.size / (rw * rh);
+    const solid = fill > 0.4 ? 1 : 0.5;
+
+    const centreY = (r.minY + rh / 2) / rows;
+    const height = centreY < 0.6 ? 1 : 0.6;
+
+    // A head occupies a modest share of a portrait. Anything past a third of
+    // the frame is scenery whatever else it looks like.
+    const frac = r.size / area;
+    const plausible = frac > 0.002 && frac < 0.33 ? 1 : 0.1;
+
+    const score = r.size * bounded * shape * solid * height * plausible;
+    if (score > bestScore) { bestScore = score; best = r; }
+  }
+  if (!best) return { ok: false, error: "No face found in this photo." };
+
+  // A chosen region that runs off several edges has almost certainly merged
+  // with the background. Fair skin against a cream wall is close enough in
+  // colour that the flood fill joins them, and the merged blob's median is the
+  // wall, not the face - so the panel would confidently report the paint
+  // colour as a complexion. Refuse instead, and say what would fix it.
+  const bestEdges =
+    (best.minX === 0 ? 1 : 0) + (best.minY === 0 ? 1 : 0) +
+    (best.maxX === cols - 1 ? 1 : 0) + (best.maxY === rows - 1 ? 1 : 0);
+  if (bestEdges >= 2) {
+    return {
+      ok: false,
+      error: "Couldn't separate you from the background - they are too close " +
+             "in colour. Try a photo against a wall that contrasts with your " +
+             "skin, or pick the closest swatches below.",
+    };
+  }
+
+  const faceW = best.maxX - best.minX + 1;
+  const faceH = best.maxY - best.minY + 1;
+
+  // Sample the middle of the blob, away from hairline, jaw and shadow.
+  const sr = [], sg = [], sb = [];
+  const inset = 0.22;
+  for (let ry = Math.round(best.minY + faceH * inset); ry <= Math.round(best.maxY - faceH * inset); ry++) {
+    for (let rx = Math.round(best.minX + faceW * inset); rx <= Math.round(best.maxX - faceW * inset); rx++) {
+      if (rx < 0 || ry < 0 || rx >= cols || ry >= rows) continue;
+      if (label[ry * cols + rx] !== best.id) continue;
+      const i = (ry * step * w + rx * step) * 4;
+      sr.push(data[i]); sg.push(data[i + 1]); sb.push(data[i + 2]);
+    }
+  }
+  if (sr.length < 25) {
+    return { ok: false, error: "Face region too small. Try a closer photo." };
+  }
+
+  const skinHex = toHex(median(sr), median(sg), median(sb));
+  const skinLab = hexToLab(skinHex);
+
+  // Sanity-check the answer, not just the region.
+  //
+  // The gate that finds candidate pixels has to be wide, because deep skin and
+  // dark brown hair are all but identical in CIELAB - #4a3324 skin sits at
+  // L 23.5 / chroma 15.9 / hue 58.9 and #3d2b1f hair at L 19.3 / 12.8 / 59.7.
+  // No colour test separates those, so the gate lets in things that are not
+  // skin, including pale walls.
+  //
+  // Human skin spans roughly chroma 10-50. A cream wall sits near chroma 8:
+  // it passes the gate as a candidate but cannot survive a check on the final
+  // measurement. Refusing here is the difference between "I could not read
+  // this photo" and confidently reporting a paint colour as a complexion.
+  const skinChroma = chromaOf(skinLab);
+  if (skinChroma < 10 || skinChroma > 52 || skinLab.L > 92) {
+    return {
+      ok: false,
+      error: "Couldn't separate you from the background - they are too close " +
+             "in colour. Try a photo against a wall that contrasts with your " +
+             "skin, or pick the closest swatches below.",
+    };
+  }
+
+  // Hair: a band above and around the face blob.
+  const hy0 = Math.max(0, Math.round(best.minY - faceH * 0.95));
+  const hy1 = Math.min(rows - 1, Math.round(best.minY + faceH * 0.18));
+  const hx0 = Math.max(0, Math.round(best.minX - faceW * 0.38));
+  const hx1 = Math.min(cols - 1, Math.round(best.maxX + faceW * 0.38));
+
+  const cand = [];
+  for (let ry = hy0; ry <= hy1; ry++) {
+    for (let rx = hx0; rx <= hx1; rx++) {
+      const i = (ry * step * w + rx * step) * 4;
+      if (data[i + 3] < 200) continue;
+      const lab = rgbToLab([data[i], data[i + 1], data[i + 2]]);
+      if (lab.L < skinLab.L - 14 && chromaOf(lab) < 34) {
+        cand.push({ L: lab.L, r: data[i], g: data[i + 1], b: data[i + 2] });
+      }
+    }
+  }
+
+  let hairHex = null;
+  if (cand.length >= 25) {
     cand.sort((a, b) => a.L - b.L);
-    const core = cand.slice(0, Math.max(30, Math.floor(cand.length * 0.55)));
-    hairHex = toHex(median(core.map(p => p.r)), median(core.map(p => p.g)), median(core.map(p => p.b)));
-    hairPt = [median(core.map(p => p.x)), median(core.map(p => p.y))];
+    const core = cand.slice(0, Math.max(20, Math.floor(cand.length * 0.55)));
+    hairHex = toHex(median(core.map((p) => p.r)), median(core.map((p) => p.g)),
+                    median(core.map((p) => p.b)));
   }
 
   return {
     ok: true,
     skinHex,
-    // Hair covered by a dupatta or hijab is common and legitimate here. Falling
-    // back to a depth-appropriate default and saying so beats silently sampling
-    // the scarf and reporting it as hair colour.
     hairHex: hairHex || (skinLab.L > 55 ? "#3d2b1f" : "#0d0b0a"),
     hairFound: Boolean(hairHex),
     skinCount: sr.length,
     hairCount: hairHex ? cand.length : 0,
-    marks: hairHex ? { skin: [cx, cy], hair: hairPt } : { skin: [cx, cy] }
+    regions: regions.length,
   };
 }
 
