@@ -63,12 +63,29 @@ function readSku() {
  *  filtering, the extension confidently measured a recommended product and
  *  showed a verdict for a fabric the shopper was not looking at.
  */
-function skuStem(sku) {
-  if (!sku) return null;
+function skuStems(sku) {
+  if (!sku) return [];
   const low = sku.toLowerCase();
-  // Trim the colourway suffix: -VG_MULTI, -BL_BLUE and similar.
-  const m = low.match(/^(.*?)-[a-z]{2}[_-]/);
-  return (m ? m[1] : low.split("_")[0]) || null;
+
+  // Several candidates rather than one, because the SKU and the filenames do
+  // not always agree on prefixes. T-A22-26-202FD2-VG_MULTI is photographed as
+  // a22-26-202fd2_multi_1.jpg: the leading type marker exists in the SKU and
+  // not in the filename, so a single stem matched nothing and the panel
+  // reported no photograph at all.
+  const candidates = new Set();
+  const add = (s) => { if (s && s.length >= 6) candidates.add(s); };
+
+  const trim = (s) => {
+    // Drop the colourway suffix: -VG_MULTI, -BL_BLUE and similar.
+    const m = s.match(/^(.*?)-[a-z]{2}[_-]/);
+    return m ? m[1] : s.split("_")[0];
+  };
+
+  add(trim(low));
+  // Same again with a leading single-letter type marker removed.
+  add(trim(low.replace(/^[a-z]-/, "")));
+
+  return [...candidates];
 }
 
 /** Images. The tile carries several resolutions as data attributes; the PDP
@@ -113,14 +130,14 @@ function readImages(sku) {
     }
   }
 
-  const stem = skuStem(sku);
+  const stems = skuStems(sku);
   let files = [...byFile.entries()];
 
-  if (stem) {
-    const mine = files.filter(([file]) => file.startsWith(stem));
-    // Only apply the filter when it actually finds something. A SKU format
-    // this does not understand should degrade to the old behaviour rather
-    // than leaving the panel with no image at all.
+  if (stems.length) {
+    const mine = files.filter(([file]) => stems.some((s) => file.startsWith(s)));
+    // Only narrow when it actually finds something. A SKU shape this does not
+    // understand should fall back to every image on the page rather than
+    // leaving the panel with none.
     if (mine.length) files = mine;
   }
 
