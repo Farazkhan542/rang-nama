@@ -256,9 +256,14 @@ export class Panel {
 
     const drop = document.createElement("label");
     drop.className = "photo";
+    // "Use a photo of yourself" read as "see yourself wearing this". It does
+    // not do that - it reads two colours off your face and throws the picture
+    // away. Say so, because the gap between what a control implies and what it
+    // does is the user's problem only until someone writes the label.
     drop.innerHTML =
-      "<b>Use a photo of yourself</b>" +
-      "<small>Never uploaded &mdash; read on your device and discarded</small>";
+      "<b>Read my colouring from a photo</b>" +
+      "<small>Measures your skin and hair tone, then discards the photo. " +
+      "This is not a try-on.</small>";
     const file = document.createElement("input");
     file.type = "file";
     file.accept = "image/*";
@@ -303,7 +308,11 @@ export class Panel {
         found.append(si, hi, label);
         found.hidden = false;
       } catch (e) {
-        err.textContent = e.message;
+        found.hidden = true;
+        err.textContent =
+          e.message +
+          " Try a clearer, front-facing photo in even light, or pick the " +
+          "closest swatches below instead.";
         err.hidden = false;
       } finally {
         drop.classList.remove("busy");
