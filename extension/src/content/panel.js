@@ -13,6 +13,7 @@ import {
 import { buildFrame, buildVerdict } from "../engine/verdict.js";
 import { colouringFromPhoto, readPhoto } from "../lib/colouring.js";
 import { renderGarment } from "../lib/garment.js";
+import { loadSettings, looksLikeGeminiKey, saveSettings } from "../lib/settings.js";
 import { HAIR_LADDER, SKIN_LADDER, saveProfile } from "../lib/storage.js";
 
 const CSS = `
@@ -130,6 +131,22 @@ button.go:hover { background: #26327a; }
 }
 .found i { width: 18px; height: 18px; border-radius: 3px; border: 1px solid rgba(0,0,0,.15); }
 .err { font-size: 12px; color: #b0472b; background: #f8e6df; padding: 8px 10px; border-radius: 3px; }
+.ok { font-size: 12px; color: #0f7a5a; background: #e3f2ec; padding: 8px 10px; border-radius: 3px; }
+
+input[type=password], input[type=text].key {
+  width: 100%; padding: 8px 9px; border: 1px solid #dddad2; border-radius: 4px;
+  font-family: ui-monospace, monospace; font-size: 12px; color: #191b2e;
+  background: #fff;
+}
+input[type=password]:focus, input[type=text].key:focus {
+  outline: 2px solid #2f3d8f; outline-offset: -1px; border-color: #2f3d8f;
+}
+.hint { font-size: 11.5px; color: #8e8fa0; margin: 6px 0 0; line-height: 1.45; }
+.hint a { color: #2f3d8f; }
+.warn {
+  font-size: 11.5px; color: #8a6314; background: #f7eeda;
+  padding: 8px 10px; border-radius: 3px; margin: 10px 0 0; line-height: 1.45;
+}
 
 .tab {
   position: fixed; right: 18px; bottom: 18px; z-index: 2147483000;
@@ -380,6 +397,84 @@ export class Panel {
     this.frame(nodes);
   }
 
+  /** Settings: the optional Gemini key.
+   *
+   *  Entered here rather than committed anywhere. The field is a password
+   *  input so it does not end up in a screen recording, which matters given
+   *  this exists to be demonstrated.
+   */
+  async settings(onBack) {
+    const s = await loadSettings();
+    const nodes = [];
+
+    const label = document.createElement("label");
+    label.className = "lab";
+    label.textContent = "Gemini API key (optional)";
+    nodes.push(label);
+
+    const input = document.createElement("input");
+    input.type = "password";
+    input.placeholder = "AIzaSy…";
+    input.value = s.geminiApiKey || "";
+    nodes.push(input);
+
+    const hint = document.createElement("p");
+    hint.className = "hint";
+    hint.innerHTML =
+      "Without a key everything is measured on your machine and the extension " +
+      "makes no network requests at all. With one, the photo is sent to Google " +
+      "so the model can point out which part of it is the garment - which is " +
+      "the one judgement the local code cannot make well. " +
+      '<a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">Get a free key</a>.';
+    nodes.push(hint);
+
+    const warn = document.createElement("p");
+    warn.className = "warn";
+    warn.textContent =
+      "This key is stored in your browser and is readable by anyone who can " +
+      "open this extension's folder. That is fine while you run it yourself. " +
+      "If you ever share the extension, move the key behind a server first.";
+    nodes.push(warn);
+
+    const status = document.createElement("p");
+    status.hidden = true;
+    nodes.push(status);
+
+    const save = document.createElement("button");
+    save.className = "go";
+    save.type = "button";
+    save.textContent = "Save";
+    save.style.marginTop = "12px";
+    save.addEventListener("click", async () => {
+      const key = input.value.trim();
+      status.hidden = false;
+      if (key) {
+        const check = looksLikeGeminiKey(key);
+        if (!check.ok) {
+          status.className = "err";
+          status.textContent = check.why;
+          return;
+        }
+      }
+      await saveSettings({ geminiApiKey: key });
+      status.className = "ok";
+      status.textContent = key
+        ? "Saved. Reload the page to use it."
+        : "Cleared. Everything stays on your machine.";
+    });
+    nodes.push(save);
+
+    const back = document.createElement("p");
+    back.className = "note";
+    const a = document.createElement("a");
+    a.textContent = "back";
+    a.addEventListener("click", onBack);
+    back.appendChild(a);
+    nodes.push(back);
+
+    this.frame(nodes);
+  }
+
   /** The verdict card. */
   verdict(product, colours, profile, onEdit, garmentPatch = null) {
     const skin = hexToLab(profile.skin);
@@ -470,7 +565,12 @@ export class Panel {
     const edit = document.createElement("a");
     edit.textContent = "change my colouring";
     edit.addEventListener("click", onEdit);
-    note.appendChild(edit);
+    note.append(edit, document.createTextNode(" · "));
+
+    const cog = document.createElement("a");
+    cog.textContent = "settings";
+    cog.addEventListener("click", () => this.settings(() => onEdit()));
+    note.appendChild(cog);
     nodes.push(note);
 
     this.frame(nodes);

@@ -8,6 +8,8 @@
 import * as khaadi from "../adapters/khaadi.js";
 import { dominantColours, loadImageData, scoreForFabric } from "../lib/extract.js";
 import { fabricPatch } from "../lib/garment.js";
+import { intersectMask, locateGarment } from "../lib/gemini.js";
+import { loadSettings } from "../lib/settings.js";
 import { DEFAULT_PROFILE, loadProfile } from "../lib/storage.js";
 import { Panel } from "./panel.js";
 
@@ -79,7 +81,29 @@ async function measure(product) {
               `${imageData.width}x${imageData.height}`);
 
   const scored = t("background mask", () => scoreForFabric(imageData));
-  const mask = scored.mask;
+  let mask = scored.mask;
+  let located = null;
+
+  // Optional, and only with a key. The local mask separates subject from
+  // backdrop well; what it cannot do is tell which part of the subject is the
+  // garment rather than her hair, her arms or the dupatta. That is a judgement,
+  // and it is the one thing worth asking a model for.
+  const settings = await loadSettings();
+  if (settings.geminiApiKey && settings.useGeminiSegmentation) {
+    const started = performance.now();
+    try {
+      located = await locateGarment(imageData, settings.geminiApiKey);
+      if (located) {
+        mask = intersectMask(mask, imageData, located.rect);
+        console.log(`[rangnama] garment located by ${located.model} ` +
+                    `(confidence ${located.confidence}): ${located.note} ` +
+                    `[${(performance.now() - started).toFixed(0)}ms]`);
+      }
+    } catch (err) {
+      console.warn("[rangnama] garment location failed, using local mask:", err.message);
+    }
+  }
+
   const colours = t("dominant colours", () => dominantColours(imageData, { k: 3, mask }));
 
   if (colours.length === 0) {
@@ -88,7 +112,7 @@ async function measure(product) {
   // Same mask for the render, so the patch comes from cloth rather than from
   // the studio background beside it.
   const patch = t("fabric patch", () => fabricPatch(imageData, mask));
-  return { colours, patch };
+  return { colours, patch, located };
 }
 
 async function run() {
