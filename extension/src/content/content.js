@@ -6,7 +6,7 @@
 // permissions beyond the site it runs on and no API key exists to leak.
 
 import * as khaadi from "../adapters/khaadi.js";
-import { backgroundMask, dominantColours, loadImageData } from "../lib/extract.js";
+import { dominantColours, loadImageData, scoreForFabric } from "../lib/extract.js";
 import { fabricPatch } from "../lib/garment.js";
 import { DEFAULT_PROFILE, loadProfile } from "../lib/storage.js";
 import { Panel } from "./panel.js";
@@ -22,21 +22,46 @@ function isProductPage() {
   return /\/[A-Z0-9][A-Z0-9\-_]{6,}\.html/i.test(location.pathname);
 }
 
-/** The fabric shot, not the styled shot.
+/** Choose which photograph to measure.
  *
- *  Khaadi ships several photographs per SKU. For unstitched cloth the first is
- *  usually the folded set laid flat, which is the one worth measuring: later
- *  frames are often close-up detail crops or a model in stitched clothing,
- *  and a model contributes her skin and whatever else she is wearing to the
- *  palette. Preferring the first image is a heuristic, not a certainty, which
- *  is why the panel says where the reading came from.
+ *  This started as "take the first one", on the assumption that an unstitched
+ *  listing leads with the fabric laid flat. It does not. Khaadi has no flat-lay
+ *  photographs at all - every frame is a model wearing the stitched suit, on a
+ *  graded studio backdrop - and the first image is typically the full-body
+ *  shot, where the cloth is under a fifth of the frame and the rest is wall,
+ *  skin, hair and shoes. The panel confidently reported the studio wall as the
+ *  fabric colour.
+ *
+ *  So score the candidates instead: how much of the frame is subject rather
+ *  than backdrop, and how little of that subject is skin. Scoring happens at
+ *  low resolution because only the ranking matters, then the winner is
+ *  re-read at working resolution.
  */
-function pickFabricImage(images) {
-  return images[0] || null;
+async function pickFabricImage(images) {
+  const candidates = images.slice(0, 4);
+  const scored = [];
+
+  for (const url of candidates) {
+    try {
+      const small = await loadImageData(url, 200);
+      const s = scoreForFabric(small);
+      scored.push({ url, ...s });
+      console.log(`[rangnama] candidate ${url.split("/").pop().split("?")[0]}: ` +
+                  `coverage ${(s.coverage * 100).toFixed(0)}% ` +
+                  `skin ${(s.skinFraction * 100).toFixed(0)}% ` +
+                  `score ${s.score.toFixed(3)}${s.maskFailed ? " (mask failed)" : ""}`);
+    } catch {
+      // A candidate that will not load is not a candidate. Keep going.
+    }
+  }
+  if (!scored.length) return images[0] || null;
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0].url;
 }
 
 async function measure(product) {
-  const url = pickFabricImage(product.images);
+  const url = await pickFabricImage(product.images);
   if (!url) throw new Error("no product photograph found on this page");
 
   const t = (label, fn) => {
@@ -53,7 +78,8 @@ async function measure(product) {
   console.log(`[rangnama] image load+decode: ${(performance.now() - started).toFixed(0)}ms`,
               `${imageData.width}x${imageData.height}`);
 
-  const mask = t("background mask", () => backgroundMask(imageData));
+  const scored = t("background mask", () => scoreForFabric(imageData));
+  const mask = scored.mask;
   const colours = t("dominant colours", () => dominantColours(imageData, { k: 3, mask }));
 
   if (colours.length === 0) {

@@ -76,7 +76,13 @@ export async function loadImageData(url, maxSide = 640) {
  * shadow or edge detection, not colour. The panel should say so rather than
  * quietly reporting one colour fewer than the fabric has.
  */
-export function backgroundMask({ data, width, height }, tolerance = 5) {
+export function backgroundMask({ data, width, height }, localTolerance = 3.5,
+                               seedTolerance = 26) {
+  const lab = (p) => {
+    const i = p * 4;
+    return rgbToLab([data[i], data[i + 1], data[i + 2]]);
+  };
+
   const patch = Math.max(2, Math.floor(Math.min(width, height) / 40));
   const samples = [];
   const corners = [
@@ -94,42 +100,50 @@ export function backgroundMask({ data, width, height }, tolerance = 5) {
     const s = [...arr].sort((a, b) => a - b);
     return s[s.length >> 1];
   };
-  const bg = [0, 1, 2].map((c) => median(samples.map((s) => s[c])));
-  const bgLab = rgbToLab(bg);
+  const seedLab = rgbToLab([0, 1, 2].map((c) => median(samples.map((s) => s[c]))));
 
-  const isBg = (p) => {
-    const i = p * 4;
-    const r = data[i], g = data[i + 1], b = data[i + 2];
-    // Cheap RGB gate first, CIEDE2000 only where it might matter. A per-pixel
-    // dE over half a megapixel is far too slow to run on every product view.
-    if (Math.max(Math.abs(r - bg[0]), Math.abs(g - bg[1]), Math.abs(b - bg[2])) >= 60) {
-      return false;
-    }
-    return deltaE2000(bgLab, rgbToLab([r, g, b])) < tolerance;
-  };
-
-  // Flood fill inward from the frame edge rather than testing every pixel
-  // independently. Colour alone cannot separate an ivory garment from a white
-  // studio ground - they are within a few dE of each other - but position can:
-  // the background is the region connected to the border, and the garment is
-  // not. A plain colour test silently deleted a #f2efe6 ivory on white and
-  // reported the garment as having one fewer colour than it has.
+  // Region growing: each pixel is compared to the neighbour it spread from,
+  // not to a fixed seed colour.
+  //
+  // A fixed comparison assumes a flat studio ground. Khaadi photographs on a
+  // graded backdrop - light at the top, darker at the bottom - and the total
+  // span across that gradient is far larger than any tolerance tight enough to
+  // preserve a pale garment. With a fixed test the fill stopped a few
+  // centimetres in and the remaining backdrop was reported as fabric: the
+  // measured "dominant colour" came out #a29c8c at 78%, which is the wall.
+  //
+  // Locally a gradient is almost flat, so a small neighbour-to-neighbour
+  // tolerance follows it the whole way. seedTolerance stops the walk drifting
+  // arbitrarily far and wandering into the garment.
   const isBackground = new Uint8Array(width * height);
   const stack = [];
-  const push = (x, y) => {
-    const p = y * width + x;
-    if (!isBackground[p] && isBg(p)) { isBackground[p] = 1; stack.push(p); }
+
+  const consider = (p, fromLab) => {
+    if (isBackground[p]) return;
+    const here = lab(p);
+    if (deltaE2000(fromLab, here) > localTolerance) return;
+    if (deltaE2000(seedLab, here) > seedTolerance) return;
+    isBackground[p] = 1;
+    stack.push(p);
   };
-  for (let x = 0; x < width; x++) { push(x, 0); push(x, height - 1); }
-  for (let y = 0; y < height; y++) { push(0, y); push(width - 1, y); }
+
+  for (let x = 0; x < width; x++) {
+    consider(x, seedLab);
+    consider((height - 1) * width + x, seedLab);
+  }
+  for (let y = 0; y < height; y++) {
+    consider(y * width, seedLab);
+    consider(y * width + width - 1, seedLab);
+  }
 
   while (stack.length) {
     const p = stack.pop();
+    const here = lab(p);
     const x = p % width, y = (p - x) / width;
-    if (x > 0) push(x - 1, y);
-    if (x < width - 1) push(x + 1, y);
-    if (y > 0) push(x, y - 1);
-    if (y < height - 1) push(x, y + 1);
+    if (x > 0) consider(p - 1, here);
+    if (x < width - 1) consider(p + 1, here);
+    if (y > 0) consider(p - width, here);
+    if (y < height - 1) consider(p + width, here);
   }
 
   const keep = new Uint8Array(width * height);
@@ -263,4 +277,64 @@ export function dominantColours(imageData, {
   const pixels = samplePixels(imageData, mask, maxSamples, excludeSkin);
   if (pixels.length < 50) return [];
   return kmeansLab(pixels, k);
+}
+
+/**
+ * Score how usable a photograph is for reading fabric colour.
+ *
+ * Khaadi has no flat-lay photographs: every image is a model wearing the
+ * stitched suit, so the frame always contains her skin, her hair and a studio
+ * backdrop alongside the cloth. The images differ enormously in how much of
+ * the frame is actually fabric - a full-body shot is roughly a quarter cloth,
+ * a torso crop closer to three quarters - and picking the wrong one means
+ * measuring a backdrop and a face.
+ *
+ * Returns coverage (how much is not background) and skinFraction (how much of
+ * that is skin-coloured), so the caller can prefer frames that are mostly
+ * cloth and mostly not person.
+ */
+export function scoreForFabric(imageData) {
+  const mask = backgroundMask(imageData);
+  const { data, width, height } = imageData;
+
+  let subject = 0, skin = 0;
+  const total = width * height;
+  const stride = Math.max(1, Math.floor(total / 6000));
+
+  for (let p = 0; p < total; p += stride) {
+    if (!mask[p]) continue;
+    subject++;
+    const i = p * 4;
+    if (isSkin(data[i], data[i + 1], data[i + 2])) skin++;
+  }
+
+  const sampled = Math.ceil(total / stride);
+  const coverage = subject / sampled;
+  const skinFraction = subject ? skin / subject : 0;
+
+  // Coverage near 100% is not a good photograph, it is a failed mask.
+  //
+  // Background detection assumes the backdrop reaches the frame edge. In a
+  // tight torso crop the garment itself reaches the edge, the fill finds no
+  // background at all, and coverage comes back at 1.0. Scoring that as the
+  // best frame picked exactly the image whose mask had failed, and the
+  // measured dominant colour was the studio wall at 68%.
+  //
+  // A model shot plausibly runs 15-75% subject. Outside that band the number
+  // is evidence about the mask, not about the picture.
+  const plausible =
+    coverage > 0.90 ? 0.15 :          // mask found no background
+    coverage < 0.08 ? 0.3 :           // mask ate the garment
+    1.0;
+
+  return {
+    coverage,
+    skinFraction,
+    maskFailed: coverage > 0.90 || coverage < 0.08,
+    // Prefer lots of subject and little skin. Squaring the skin penalty keeps
+    // a warm fabric - which reads as skin-coloured to any colour-only test -
+    // from being discarded outright when it is the only frame available.
+    score: coverage * (1 - skinFraction ** 2) * plausible,
+    mask,
+  };
 }
