@@ -476,7 +476,7 @@ export class Panel {
   }
 
   /** The verdict card. */
-  verdict(product, colours, profile, onEdit, garmentPatch = null) {
+  verdict(product, colours, profile, onEdit, cutout = null) {
     const skin = hexToLab(profile.skin);
     const hair = hexToLab(profile.hair);
     const season = selectSeason(
@@ -520,18 +520,21 @@ export class Panel {
     // The fabric as a stitched kurta, built from the real print on this page.
     // The shopper is being asked to buy cloth and imagine the garment; this is
     // the part of the job the product photograph does not do.
-    if (garmentPatch) {
+    if (cutout) {
       const fig = document.createElement("figure");
       fig.className = "garment";
       fig.style.margin = "0 0 12px";
       const c = document.createElement("canvas");
       fig.appendChild(c);
       const cap = document.createElement("figcaption");
-      cap.textContent = `This fabric as a kurta · ${frame} frame · drape is illustrative`;
+      cap.textContent = cutout.located
+        ? "The garment on this page, background removed"
+        : "The garment on this page, background removed (approximate)";
       fig.appendChild(cap);
       nodes.push(fig);
       // Render after the node is in the tree so devicePixelRatio applies.
-      queueMicrotask(() => renderGarment(c, garmentPatch, frame, null));
+      queueMicrotask(() =>
+        renderGarment(c, cutout.imageData, cutout.mask, cutout.rect));
     }
 
     const sw = document.createElement("div");

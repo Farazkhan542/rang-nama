@@ -68,109 +68,80 @@ export function fabricPatch(imageData, mask, patchSize = 96) {
   return canvas;
 }
 
-/** Front-view kurta silhouette: body, sleeves, neckline. */
-function kurtaPath(g, w, h) {
-  const X = (v) => v * w, Y = (v) => v * h;
-  g.beginPath();
-  g.moveTo(X(0.31), Y(0.085));
-  g.quadraticCurveTo(X(0.16), Y(0.10), X(0.115), Y(0.175));
-  g.lineTo(X(0.075), Y(0.44));
-  g.quadraticCurveTo(X(0.14), Y(0.475), X(0.245), Y(0.455));
-  g.lineTo(X(0.275), Y(0.30));
-  g.lineTo(X(0.205), Y(0.985));
-  g.quadraticCurveTo(X(0.5), Y(1.01), X(0.795), Y(0.985));
-  g.lineTo(X(0.725), Y(0.30));
-  g.lineTo(X(0.755), Y(0.455));
-  g.quadraticCurveTo(X(0.86), Y(0.475), X(0.925), Y(0.44));
-  g.lineTo(X(0.885), Y(0.175));
-  g.quadraticCurveTo(X(0.84), Y(0.10), X(0.69), Y(0.085));
-  g.quadraticCurveTo(X(0.5), Y(0.215), X(0.31), Y(0.085));
-  g.closePath();
-}
-
 /**
- * Draw the kurta.
+ * Show the garment as photographed, background removed.
  *
- * @param canvas   target
- * @param patch    canvas of real fabric, from fabricPatch
- * @param frame    petite | average | tall
- * @param motifCm  real-world repeat size, if known. When null the patch is
- *                 tiled at a plausible default and the caller should say the
- *                 scale is illustrative rather than measured.
+ * This replaces a renderer that tiled a small patch of fabric across a generic
+ * kurta outline. That works for an all-over repeat print and is wrong for this
+ * category: Pakistani lawn is largely *placement* print - a floral cascade
+ * down the centre front, embroidery at the neckline, a scalloped hem, printed
+ * sleeve borders. Tiling a patch reproduced the colours and destroyed the
+ * design, so the panel showed the right palette on a garment that did not
+ * exist.
+ *
+ * Khaadi also photographs every piece on a model, including the unstitched
+ * ones, so "what does this look like made up?" is already answered by the
+ * page. Cutting the garment out of that photograph keeps the real design
+ * intact and claims nothing the picture does not support.
  */
-export function renderGarment(canvas, patch, frame = "average", motifCm = null) {
+export function renderGarment(canvas, imageData, mask, rect = null) {
+  const { data, width, height } = imageData;
+
+  // Crop to the garment's actual extent so the card is not mostly empty studio.
+  let x0 = width, y0 = height, x1 = 0, y1 = 0;
+  for (let p = 0; p < width * height; p++) {
+    if (!mask[p]) continue;
+    const x = p % width, y = (p - x) / width;
+    if (x < x0) x0 = x;
+    if (x > x1) x1 = x;
+    if (y < y0) y0 = y;
+    if (y > y1) y1 = y;
+  }
+  if (x1 <= x0 || y1 <= y0) { x0 = 0; y0 = 0; x1 = width - 1; y1 = height - 1; }
+
+  // Prefer the model's box when it gave one: it knows which part of the
+  // subject is the garment rather than her hair or the dupatta.
+  if (rect) {
+    x0 = Math.max(x0, Math.floor(rect.x0 * width));
+    x1 = Math.min(x1, Math.ceil(rect.x1 * width));
+    y0 = Math.max(y0, Math.floor(rect.y0 * height));
+    y1 = Math.min(y1, Math.ceil(rect.y1 * height));
+  }
+
+  const cw = Math.max(1, x1 - x0 + 1);
+  const ch = Math.max(1, y1 - y0 + 1);
+
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const w = 300, h = 410;
-  canvas.width = w * dpr;
-  canvas.height = h * dpr;
-  canvas.style.width = w + "px";
-  canvas.style.height = h + "px";
+  const outW = 290;
+  const outH = Math.round((ch / cw) * outW);
+  canvas.width = outW * dpr;
+  canvas.height = outH * dpr;
+  canvas.style.width = outW + "px";
+  canvas.style.height = outH + "px";
+
+  const cut = document.createElement("canvas");
+  cut.width = cw;
+  cut.height = ch;
+  const cx = cut.getContext("2d");
+  const out = cx.createImageData(cw, ch);
+
+  for (let y = 0; y < ch; y++) {
+    for (let x = 0; x < cw; x++) {
+      const src = ((y0 + y) * width + (x0 + x)) * 4;
+      const dst = (y * cw + x) * 4;
+      out.data[dst] = data[src];
+      out.data[dst + 1] = data[src + 1];
+      out.data[dst + 2] = data[src + 2];
+      // Background becomes transparent rather than being painted over, so the
+      // cut-out sits on the card instead of carrying a studio wall with it.
+      out.data[dst + 3] = mask[(y0 + y) * width + (x0 + x)] ? 255 : 0;
+    }
+  }
+  cx.putImageData(out, 0, 0);
 
   const g = canvas.getContext("2d");
   g.scale(dpr, dpr);
-  g.clearRect(0, 0, w, h);
-
-  const bodyPx = w * 0.59;
-  const pxPerCm = bodyPx / KURTA_CM[frame];
-  // Without a measured repeat, tile the patch at roughly 12 cm. Stated as
-  // illustrative in the panel rather than presented as a measurement.
-  const tilePx = Math.max(14, (motifCm ?? 12) * pxPerCm);
-
-  g.save();
-  kurtaPath(g, w, h);
-  g.clip();
-
-  const scaled = document.createElement("canvas");
-  scaled.width = Math.round(tilePx);
-  scaled.height = Math.round(tilePx);
-  scaled.getContext("2d").drawImage(patch, 0, 0, scaled.width, scaled.height);
-
-  g.fillStyle = g.createPattern(scaled, "repeat");
-  g.fillRect(0, 0, w, h);
-
-  // Shading, multiplied so it removes light without touching hue. A normal
-  // blend would wash grey over the print and shift the colours the verdict
-  // just reported.
-  g.globalCompositeOperation = "multiply";
-
-  const across = g.createLinearGradient(0, 0, w, 0);
-  across.addColorStop(0.00, "rgba(120,120,140,.50)");
-  across.addColorStop(0.16, "rgba(255,255,255,1)");
-  across.addColorStop(0.46, "rgba(255,255,255,1)");
-  across.addColorStop(0.62, "rgba(150,150,168,.40)");
-  across.addColorStop(0.84, "rgba(255,255,255,1)");
-  across.addColorStop(1.00, "rgba(120,120,140,.50)");
-  g.fillStyle = across;
-  g.fillRect(0, 0, w, h);
-
-  const down = g.createLinearGradient(0, 0, 0, h);
-  down.addColorStop(0.00, "rgba(140,140,158,.38)");
-  down.addColorStop(0.14, "rgba(255,255,255,1)");
-  down.addColorStop(0.80, "rgba(255,255,255,1)");
-  down.addColorStop(1.00, "rgba(160,160,178,.32)");
-  g.fillStyle = down;
-  g.fillRect(0, 0, w, h);
-
-  for (const [cxr, wr, a] of [[0.34, 0.055, 0.18], [0.66, 0.045, 0.14]]) {
-    const fold = g.createLinearGradient((cxr - wr) * w, 0, (cxr + wr) * w, 0);
-    fold.addColorStop(0, "rgba(255,255,255,1)");
-    fold.addColorStop(0.5, `rgba(120,120,140,${a})`);
-    fold.addColorStop(1, "rgba(255,255,255,1)");
-    g.fillStyle = fold;
-    g.fillRect(0, 0, w, h);
-  }
-
-  g.globalCompositeOperation = "source-over";
-  g.restore();
-
-  g.strokeStyle = "rgba(0,0,0,.20)";
-  g.lineWidth = 1;
-  g.beginPath();
-  g.moveTo(w * 0.31, h * 0.085);
-  g.quadraticCurveTo(w * 0.5, h * 0.215, w * 0.69, h * 0.085);
-  g.stroke();
-
-  g.strokeStyle = "rgba(0,0,0,.14)";
-  kurtaPath(g, w, h);
-  g.stroke();
+  g.clearRect(0, 0, outW, outH);
+  g.imageSmoothingQuality = "high";
+  g.drawImage(cut, 0, 0, outW, outH);
 }

@@ -7,7 +7,6 @@
 
 import * as khaadi from "../adapters/khaadi.js";
 import { dominantColours, loadImageData, scoreForFabric } from "../lib/extract.js";
-import { fabricPatch } from "../lib/garment.js";
 import { intersectMask, locateGarment } from "../lib/gemini.js";
 import { loadSettings } from "../lib/settings.js";
 import { DEFAULT_PROFILE, loadProfile } from "../lib/storage.js";
@@ -111,8 +110,11 @@ async function measure(product) {
   }
   // Same mask for the render, so the patch comes from cloth rather than from
   // the studio background beside it.
-  const patch = t("fabric patch", () => fabricPatch(imageData, mask));
-  return { colours, patch, located };
+  return {
+    colours,
+    located,
+    cutout: { imageData, mask, rect: located?.rect ?? null, located: Boolean(located) },
+  };
 }
 
 async function run() {
@@ -151,7 +153,7 @@ async function run() {
   const show = (profile) => panel.verdict(
     product, measured.colours, profile,
     () => panel.onboarding(profile, show),
-    measured.patch
+    measured.cutout
   );
 
   const saved = await loadProfile();
