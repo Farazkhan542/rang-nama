@@ -173,7 +173,7 @@ export function backgroundMask({ data, width, height }, localTolerance = 3.5,
  * so the failure lands hardest on exactly the fabrics this product is for.
  * Separating skin from cloth needs position, not colour.
  */
-function isSkin(r, g, b) {
+export function isSkin(r, g, b) {
   const lab = rgbToLab([r, g, b]);
   const h = hueOf(lab), c = chromaOf(lab);
   return lab.L > 10 && lab.L < 95 && c > 6 && c < 62 && h > 15 && h < 90;

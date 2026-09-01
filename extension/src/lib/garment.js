@@ -10,6 +10,8 @@
 // shown beside it. Tiling the real pixels preserves the print by construction,
 // costs nothing, and finishes in a few milliseconds.
 
+import { isSkin } from "./extract.js";
+
 /** Front width of a stitched kurta in centimetres, by frame.
  *  Motif scale is meaningless without a real-world reference: the same print
  *  covers proportionally more of a petite garment than a tall one. */
@@ -68,6 +70,59 @@ export function fabricPatch(imageData, mask, patchSize = 96) {
   return canvas;
 }
 
+
+/**
+ * The row where cloth starts, below the model's head and neck.
+ *
+ * The background mask separates subject from backdrop, and on these pages the
+ * subject is a person: cutting it out gives you her face along with the
+ * garment. Gemini's box excludes the head, but only when a key is set, and the
+ * cut-out should be right without one.
+ *
+ * Skin is concentrated in the head and neck, so a per-row skin fraction has a
+ * clear peak there and falls away at the shoulders. Find the peak in the upper
+ * half, then walk down to where it stays low - that is the neckline.
+ *
+ * Deliberately per-row rather than a global colour test: a warm fabric reads as
+ * skin-coloured to any colour-only gate, and excluding "skin" globally would
+ * delete a rust or tan kurta entirely.
+ */
+export function garmentTop(imageData, mask) {
+  const { data, width, height } = imageData;
+
+  const skinFrac = new Float64Array(height);
+  for (let y = 0; y < height; y++) {
+    let subject = 0, skin = 0;
+    for (let x = 0; x < width; x += 2) {
+      const p = y * width + x;
+      if (!mask[p]) continue;
+      subject++;
+      const i = p * 4;
+      if (isSkin(data[i], data[i + 1], data[i + 2])) skin++;
+    }
+    skinFrac[y] = subject > 8 ? skin / subject : 0;
+  }
+
+  // Peak skin row in the top half: the face.
+  let peakY = -1, peak = 0;
+  for (let y = 0; y < Math.floor(height * 0.5); y++) {
+    if (skinFrac[y] > peak) { peak = skinFrac[y]; peakY = y; }
+  }
+  // No strong face signal - a flat-lay, or a crop that starts below the neck.
+  if (peakY < 0 || peak < 0.35) return 0;
+
+  // Walk down from the face until skin stays low for a stretch: the shoulders.
+  const quiet = 0.18;
+  let run = 0;
+  for (let y = peakY; y < height; y++) {
+    run = skinFrac[y] < quiet ? run + 1 : 0;
+    if (run >= Math.max(4, Math.round(height * 0.02))) {
+      return Math.max(0, y - run);
+    }
+  }
+  return 0;
+}
+
 /**
  * Show the garment as photographed, background removed.
  *
@@ -98,6 +153,11 @@ export function renderGarment(canvas, imageData, mask, rect = null) {
     if (y > y1) y1 = y;
   }
   if (x1 <= x0 || y1 <= y0) { x0 = 0; y0 = 0; x1 = width - 1; y1 = height - 1; }
+
+  // Start below the head. Without this the cut-out is the model, not the
+  // garment - her face arrives attached to the cloth.
+  const top = garmentTop(imageData, mask);
+  if (top > y0 && top < y1 - 20) y0 = top;
 
   // Prefer the model's box when it gave one: it knows which part of the
   // subject is the garment rather than her hair or the dupatta.
