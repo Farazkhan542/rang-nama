@@ -48,26 +48,29 @@ export async function saveSettings(patch) {
   return next;
 }
 
-/** Google AI Studio keys start with AIzaSy and are around 39 characters.
+/** A shape check, not a format assertion.
  *
- *  Checked before the first request so a mistyped or wrong-type credential
- *  fails immediately with something readable, rather than as an opaque 400
- *  after a photograph has already been uploaded. OAuth tokens and service
- *  account credentials look quite different and will not work here.
+ *  An earlier version required keys to start with AIzaSy and rejected
+ *  anything else. That was wrong: AI Studio also issues keys beginning "AQ.",
+ *  and the check would have refused a working credential with a confident
+ *  message about the correct prefix. Guessing a vendor's key format from
+ *  memory is not validation.
+ *
+ *  So only obvious non-keys are caught here - an empty field, or a Google
+ *  OAuth access token, which is a different credential type the API rejects
+ *  with a 401. Everything else is passed through and the API decides, since
+ *  its error message is authoritative and this file's opinion is not.
  */
 export function looksLikeGeminiKey(key) {
   const k = (key || "").trim();
   if (!k) return { ok: false, why: "No key entered." };
-  if (k.startsWith("AQ.") || k.startsWith("ya29.")) {
+  if (k.startsWith("ya29.")) {
     return {
       ok: false,
-      why: "That looks like a Google OAuth token, not an AI Studio API key. " +
-           "API keys start with AIzaSy.",
+      why: "That is a Google OAuth access token, not an API key. " +
+           "Create one at aistudio.google.com/apikey.",
     };
   }
-  if (!k.startsWith("AIza")) {
-    return { ok: false, why: "AI Studio keys start with AIzaSy." };
-  }
-  if (k.length < 30) return { ok: false, why: "That key looks too short." };
+  if (k.length < 20) return { ok: false, why: "That key looks too short." };
   return { ok: true };
 }
