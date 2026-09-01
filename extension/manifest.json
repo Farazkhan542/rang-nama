@@ -23,9 +23,5 @@
   ],
   "action": {
     "default_title": "Rang Nama"
-  },
-  "icons": {},
-  "optional_host_permissions": [
-    "https://generativelanguage.googleapis.com/*"
-  ]
+  }
 }
