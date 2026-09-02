@@ -2,18 +2,22 @@
   "manifest_version": 3,
   "name": "Rang Nama",
   "version": "0.1.0",
-  "description": "Does this fabric suit you? Colour and print advice on unstitched Pakistani fabric, computed in your browser.",
+  "description": "Does this suit you? Colour and print advice on Pakistani clothing, computed in your browser.",
   "permissions": [
     "storage"
   ],
   "host_permissions": [
     "https://pk.khaadi.com/*",
+    "https://www.junaidjamshed.com/*",
+    "https://www.gulahmedshop.com/*",
     "https://generativelanguage.googleapis.com/*"
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://pk.khaadi.com/*"
+        "https://pk.khaadi.com/*",
+        "https://www.junaidjamshed.com/*",
+        "https://www.gulahmedshop.com/*"
       ],
       "js": [
         "dist/content.js"

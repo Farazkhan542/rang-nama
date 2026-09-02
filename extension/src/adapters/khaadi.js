@@ -194,6 +194,11 @@ function readPrice() {
   return num ? { price: num, currency: "PKR" } : {};
 }
 
+/** SFCC puts an upper-case SKU in the path. */
+export function isProductPage() {
+  return /\/[A-Z0-9][A-Z0-9\-_]{6,}\.html/i.test(location.pathname);
+}
+
 export function matches() {
   return location.hostname.endsWith("khaadi.com");
 }

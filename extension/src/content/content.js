@@ -6,20 +6,23 @@
 // permissions beyond the site it runs on and no API key exists to leak.
 
 import * as khaadi from "../adapters/khaadi.js";
+import * as shopify from "../adapters/shopify.js";
 import { dominantColours, loadImageData, scoreForFabric } from "../lib/extract.js";
 import { intersectMask, locateGarment } from "../lib/gemini.js";
 import { loadSettings } from "../lib/settings.js";
 import { DEFAULT_PROFILE, loadProfile } from "../lib/storage.js";
 import { Panel } from "./panel.js";
 
-const ADAPTERS = [khaadi];
+const ADAPTERS = [khaadi, shopify];
 
 /** Is this a single product, rather than a listing or a homepage?
  *
- *  Checked before anything else so the panel does not appear on a category
- *  page and start measuring whichever photograph happens to be first.
+ *  Each adapter decides for itself: Salesforce Commerce Cloud puts an
+ *  upper-case SKU in the path, Shopify uses /products/{handle}. A single
+ *  regular expression cannot serve both.
  */
-function isProductPage() {
+function isProductPage(adapter) {
+  if (typeof adapter.isProductPage === "function") return adapter.isProductPage();
   return /\/[A-Z0-9][A-Z0-9\-_]{6,}\.html/i.test(location.pathname);
 }
 
@@ -118,20 +121,20 @@ async function measure(product) {
 }
 
 async function run() {
-  if (!isProductPage()) {
+  const adapter = ADAPTERS.find((a) => a.matches());
+  if (!adapter) return;
+
+  if (!isProductPage(adapter)) {
     console.log("[rangnama] not a product page, standing down:", location.pathname);
     return;
   }
-
-  const adapter = ADAPTERS.find((a) => a.matches());
-  if (!adapter) return;
 
   // Panel first, before any measurement. If extraction is slow or throws, the
   // shopper sees something rather than wondering whether it is installed.
   const panel = new Panel();
   panel.message("Reading this fabric…");
 
-  const product = adapter.extract();
+  const product = await adapter.extract();
   console.log("[rangnama] product:", product.sku, "|", product.images.length,
               "images | warnings:", product.warnings);
 
