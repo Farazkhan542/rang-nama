@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Rang Nama worker</title>
+<!--
+  An invisible extension page whose only job is to run MediaPipe.
+
+  A content script cannot: MediaPipe's WASM loader injects a script tag to
+  define its module factory, and in a content script that tag executes in the
+  page's world while the caller runs in the isolated world. The global never
+  becomes visible and the loader fails with "ModuleFactory not set" - which is
+  not a CSP problem, so no CSP change fixes it.
+
+  An extension page has no such split, so the loader works normally here.
+-->
+<script src="dist/offscreen.js"></script>

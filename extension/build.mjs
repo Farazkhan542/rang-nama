@@ -11,11 +11,19 @@ import { mkdirSync } from "node:fs";
 mkdirSync("dist", { recursive: true });
 
 const options = {
-  entryPoints: ["src/content/content.js"],
+  // Three entry points: the panel, the offscreen worker that runs MediaPipe,
+  // and the service worker that brokers between them.
+  // Named explicitly: with a bare list esbuild mirrors the source folders and
+  // emits dist/content/content.js, which is not what the manifest points at.
+  entryPoints: [
+    { in: "src/content/content.js", out: "content" },
+    { in: "src/offscreen/offscreen.js", out: "offscreen" },
+    { in: "src/background.js", out: "background" },
+  ],
   bundle: true,
   format: "iife",
   target: "chrome110",
-  outfile: "dist/content.js",
+  outdir: "dist",
   logLevel: "info",
   // Readable rather than minified. The panel runs on someone else's page and
   // an auditor should be able to confirm it makes no network calls.

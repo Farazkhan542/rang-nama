@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "description": "Does this suit you? Colour and print advice on Pakistani clothing, computed in your browser.",
   "permissions": [
-    "storage"
+    "storage",
+    "offscreen"
   ],
   "host_permissions": [
     "https://pk.khaadi.com/*",
@@ -43,5 +44,9 @@
         "https://www.gulahmedshop.com/*"
       ]
     }
-  ]
+  ],
+  "background": {
+    "service_worker": "dist/background.js",
+    "type": "module"
+  }
 }

@@ -12,7 +12,6 @@ import {
 } from "../engine/palette.js";
 import { buildFrame, buildVerdict } from "../engine/verdict.js";
 import { colouringFromPhoto, readPhoto } from "../lib/colouring.js";
-import { swapFace } from "../lib/faceswap.js";
 import { renderGarment } from "../lib/garment.js";
 import { loadSettings, looksLikeGeminiKey, saveSettings } from "../lib/settings.js";
 import { HAIR_LADDER, SKIN_LADDER, loadPhoto, savePhoto, saveProfile } from "../lib/storage.js";
@@ -583,6 +582,9 @@ export class Panel {
           me.src = dataUrl;
         });
 
+        // The product photo has to cross into the offscreen document, and an
+        // extension page cannot read a store's image directly - so it is
+        // fetched here, where the host permission applies, and passed as data.
         const target = new Image();
         target.crossOrigin = "anonymous";
         await new Promise((res, rej) => {
@@ -590,10 +592,27 @@ export class Panel {
           target.onerror = () => rej(new Error("product photo could not be loaded"));
           target.src = cutout.sourceUrl;
         });
+        const tcv = document.createElement("canvas");
+        tcv.width = target.naturalWidth;
+        tcv.height = target.naturalHeight;
+        tcv.getContext("2d").drawImage(target, 0, 0);
 
-        const started = performance.now();
-        const { canvas, frontality, reliable } = await swapFace(me, target);
-        const ms = (performance.now() - started).toFixed(0);
+        // MediaPipe runs in an offscreen document: its WASM loader injects a
+        // script tag, which in a content script lands in the page's world
+        // while this code runs isolated, so the module factory is never
+        // visible. An extension page has no such split.
+        const reply = await chrome.runtime.sendMessage({
+          target: "background",
+          type: "swap",
+          personDataUrl: dataUrl,
+          targetDataUrl: tcv.toDataURL("image/jpeg", 0.92),
+        });
+        if (!reply?.ok) throw new Error(reply?.error ?? "face swap failed");
+
+        const { ms, frontality, reliable } = reply;
+        const canvas = new Image();
+        canvas.src = reply.dataUrl;
+        canvas.style.maxWidth = "100%";
 
         mirrorFig.appendChild(canvas);
         const cap = document.createElement("figcaption");
