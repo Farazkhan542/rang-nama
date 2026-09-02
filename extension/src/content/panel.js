@@ -298,16 +298,32 @@ export class Panel {
       err.hidden = true;
       try {
         const imageData = await readPhoto(f);
-        const r = colouringFromPhoto(imageData);
-        if (!r.ok) throw new Error(r.error);
 
-        // Keep the photo for the face swap. The colour reading does not need
-        // it kept; this does, so it is saved only once a photo is offered.
+        // Save the photo before reading colours from it.
+        //
+        // These are two independent uses of the same upload, and the colour
+        // reading is the one that can legitimately decline - it refuses when
+        // skin and background are too close to separate, which a cream wall
+        // reliably triggers. Saving afterwards meant a declined reading also
+        // silently discarded the photo, so the face swap then reported "no
+        // photo saved" straight after a successful upload.
         const keep = document.createElement("canvas");
         keep.width = imageData.width;
         keep.height = imageData.height;
         keep.getContext("2d").putImageData(imageData, 0, 0);
         await savePhoto(keep.toDataURL("image/jpeg", 0.9));
+
+        const r = colouringFromPhoto(imageData);
+        if (!r.ok) {
+          // The photo is kept and the swap will work; only the colour reading
+          // failed, so say that rather than implying nothing happened.
+          found.hidden = true;
+          err.textContent =
+            r.error + " Your photo is saved, so “See it with my face” " +
+            "will still work - just pick your skin and hair below.";
+          err.hidden = false;
+          return;
+        }
 
         this.draft.skin = r.skinHex;
         this.draft.hair = r.hairHex;
@@ -327,10 +343,7 @@ export class Panel {
         found.hidden = false;
       } catch (e) {
         found.hidden = true;
-        err.textContent =
-          e.message +
-          " Try a clearer, front-facing photo in even light, or pick the " +
-          "closest swatches below instead.";
+        err.textContent = `Could not read that photo: ${e.message}`;
         err.hidden = false;
       } finally {
         drop.classList.remove("busy");
