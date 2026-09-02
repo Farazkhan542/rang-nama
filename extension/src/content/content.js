@@ -58,14 +58,27 @@ async function pickFabricImage(images) {
       // A candidate that will not load is not a candidate. Keep going.
     }
   }
-  if (!scored.length) return images[0] || null;
+  if (!scored.length) return { fabric: images[0] || null, faces: images.slice(0, 4) };
 
-  scored.sort((a, b) => b.score - a.score);
-  return scored[0].url;
+  const byFabric = [...scored].sort((a, b) => b.score - a.score);
+
+  // A second ordering, for the face swap, and it is close to the opposite of
+  // the first. Colour measurement wants the frame with the most cloth and the
+  // least skin; a face swap needs a frame with a face in it. Handing the swap
+  // the fabric pick meant offering it the one image deliberately chosen for
+  // having as little face as possible, which reported "no face found" on a
+  // page full of portraits.
+  const byFace = [...scored].sort((a, b) => b.skinFraction - a.skinFraction);
+
+  return {
+    fabric: byFabric[0].url,
+    faces: byFace.map((s) => s.url),
+  };
 }
 
 async function measure(product) {
-  const url = await pickFabricImage(product.images);
+  const picks = await pickFabricImage(product.images);
+  const url = picks.fabric;
   if (!url) throw new Error("no product photograph found on this page");
 
   const t = (label, fn) => {
@@ -117,7 +130,8 @@ async function measure(product) {
     colours,
     located,
     cutout: { imageData, mask, rect: located?.rect ?? null,
-              located: Boolean(located), sourceUrl: url },
+              located: Boolean(located), sourceUrl: url,
+              faceUrls: picks.faces },
   };
 }
 

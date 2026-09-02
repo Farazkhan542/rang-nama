@@ -598,29 +598,50 @@ export class Panel {
         // The product photo has to cross into the offscreen document, and an
         // extension page cannot read a store's image directly - so it is
         // fetched here, where the host permission applies, and passed as data.
-        const target = new Image();
-        target.crossOrigin = "anonymous";
-        await new Promise((res, rej) => {
-          target.onload = res;
-          target.onerror = () => rej(new Error("product photo could not be loaded"));
-          target.src = cutout.sourceUrl;
-        });
-        const tcv = document.createElement("canvas");
-        tcv.width = target.naturalWidth;
-        tcv.height = target.naturalHeight;
-        tcv.getContext("2d").drawImage(target, 0, 0);
+        const asDataUrl = async (src) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          await new Promise((res, rej) => {
+            img.onload = res;
+            img.onerror = () => rej(new Error("product photo could not be loaded"));
+            img.src = src;
+          });
+          const cv = document.createElement("canvas");
+          cv.width = img.naturalWidth;
+          cv.height = img.naturalHeight;
+          cv.getContext("2d").drawImage(img, 0, 0);
+          return cv.toDataURL("image/jpeg", 0.92);
+        };
 
-        // MediaPipe runs in an offscreen document: its WASM loader injects a
-        // script tag, which in a content script lands in the page's world
-        // while this code runs isolated, so the module factory is never
-        // visible. An extension page has no such split.
-        const reply = await chrome.runtime.sendMessage({
-          target: "background",
-          type: "swap",
-          personDataUrl: dataUrl,
-          targetDataUrl: tcv.toDataURL("image/jpeg", 0.92),
-        });
-        if (!reply?.ok) throw new Error(reply?.error ?? "face swap failed");
+        // Try the frames most likely to contain a face, best first. A listing
+        // often mixes full-body shots, torso crops and flat detail shots, and
+        // only some of them show a head at all.
+        const candidates = (cutout.faceUrls?.length ? cutout.faceUrls : [cutout.sourceUrl]);
+        let reply = null;
+        let lastError = "no face found in any photo on this page";
+
+        for (const src of candidates.slice(0, 4)) {
+          let targetDataUrl;
+          try {
+            targetDataUrl = await asDataUrl(src);
+          } catch (e) {
+            lastError = e.message;
+            continue;
+          }
+          // MediaPipe runs in an offscreen document: its WASM loader injects a
+          // script tag, which in a content script lands in the page's world
+          // while this code runs isolated, so the module factory is never
+          // visible. An extension page has no such split.
+          const r = await chrome.runtime.sendMessage({
+            target: "background",
+            type: "swap",
+            personDataUrl: dataUrl,
+            targetDataUrl,
+          });
+          if (r?.ok) { reply = r; break; }
+          lastError = r?.error ?? "face swap failed";
+        }
+        if (!reply) throw new Error(lastError);
 
         const { ms, frontality, reliable } = reply;
         const canvas = new Image();
