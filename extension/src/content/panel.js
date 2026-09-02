@@ -12,9 +12,10 @@ import {
 } from "../engine/palette.js";
 import { buildFrame, buildVerdict } from "../engine/verdict.js";
 import { colouringFromPhoto, readPhoto } from "../lib/colouring.js";
+import { swapFace } from "../lib/faceswap.js";
 import { renderGarment } from "../lib/garment.js";
 import { loadSettings, looksLikeGeminiKey, saveSettings } from "../lib/settings.js";
-import { HAIR_LADDER, SKIN_LADDER, saveProfile } from "../lib/storage.js";
+import { HAIR_LADDER, SKIN_LADDER, loadPhoto, savePhoto, saveProfile } from "../lib/storage.js";
 
 const CSS = `
 :host { all: initial; }
@@ -69,6 +70,16 @@ const CSS = `
 .garment figcaption {
   font-size: 11px; color: #8e8fa0; margin-top: 4px;
 }
+.mirror { text-align: center; margin: 0 0 12px; }
+.mirror canvas { max-width: 100%; height: auto; border-radius: 4px; display: inline-block; }
+.mirror figcaption { font-size: 11px; color: #8e8fa0; margin-top: 4px; }
+button.tryon {
+  width: 100%; padding: 9px; border-radius: 4px; cursor: pointer;
+  background: #fff; color: #2f3d8f; border: 1px solid #2f3d8f;
+  font-size: 13px; font-weight: 600; margin-bottom: 12px;
+}
+button.tryon:hover { background: #f4f5fb; }
+button.tryon:disabled { opacity: .55; cursor: default; }
 .swatches i { flex: 1; }
 
 ul.reasons { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -290,6 +301,14 @@ export class Panel {
         const imageData = await readPhoto(f);
         const r = colouringFromPhoto(imageData);
         if (!r.ok) throw new Error(r.error);
+
+        // Keep the photo for the face swap. The colour reading does not need
+        // it kept; this does, so it is saved only once a photo is offered.
+        const keep = document.createElement("canvas");
+        keep.width = imageData.width;
+        keep.height = imageData.height;
+        keep.getContext("2d").putImageData(imageData, 0, 0);
+        await savePhoto(keep.toDataURL("image/jpeg", 0.9));
 
         this.draft.skin = r.skinHex;
         this.draft.hair = r.hairHex;
@@ -525,6 +544,77 @@ export class Panel {
     num.textContent = `${v.score.toFixed(0)}/100`;
     meter.append(track, num);
     nodes.push(meter);
+
+    // Put your face on the model already wearing this garment.
+    //
+    // The garment in the product photograph is already rendered perfectly - the
+    // only thing wrong with it is whose face it is. That makes this milliseconds
+    // of canvas work rather than the tens of seconds a try-on model needs to
+    // synthesise cloth from scratch.
+    const mirrorBtn = document.createElement("button");
+    mirrorBtn.className = "tryon";
+    mirrorBtn.type = "button";
+    mirrorBtn.textContent = "See it with my face";
+    nodes.push(mirrorBtn);
+
+    const mirrorFig = document.createElement("figure");
+    mirrorFig.className = "mirror";
+    mirrorFig.style.margin = "0 0 12px";
+    mirrorFig.hidden = true;
+    nodes.push(mirrorFig);
+
+    mirrorBtn.addEventListener("click", async () => {
+      mirrorBtn.disabled = true;
+      mirrorBtn.textContent = "Working…";
+      mirrorFig.replaceChildren();
+      mirrorFig.hidden = true;
+
+      try {
+        const dataUrl = await loadPhoto();
+        if (!dataUrl) {
+          throw new Error(
+            "No photo saved. Use “change my colouring” below and upload one first."
+          );
+        }
+        const me = new Image();
+        await new Promise((res, rej) => {
+          me.onload = res;
+          me.onerror = () => rej(new Error("saved photo could not be read"));
+          me.src = dataUrl;
+        });
+
+        const target = new Image();
+        target.crossOrigin = "anonymous";
+        await new Promise((res, rej) => {
+          target.onload = res;
+          target.onerror = () => rej(new Error("product photo could not be loaded"));
+          target.src = cutout.sourceUrl;
+        });
+
+        const started = performance.now();
+        const { canvas, frontality, reliable } = await swapFace(me, target);
+        const ms = (performance.now() - started).toFixed(0);
+
+        mirrorFig.appendChild(canvas);
+        const cap = document.createElement("figcaption");
+        cap.textContent = reliable
+          ? `Your face, on this garment · ${ms}ms`
+          : `Your face, on this garment · ${ms}ms · one of the two faces ` +
+            `is turned away, so the fit is rough`;
+        mirrorFig.appendChild(cap);
+        mirrorFig.hidden = false;
+        mirrorBtn.textContent = "Redo";
+        mirrorBtn.disabled = false;
+      } catch (err) {
+        const e = document.createElement("p");
+        e.className = "err";
+        e.textContent = err.message;
+        mirrorFig.replaceChildren(e);
+        mirrorFig.hidden = false;
+        mirrorBtn.textContent = "See it with my face";
+        mirrorBtn.disabled = false;
+      }
+    });
 
     // The fabric as a stitched kurta, built from the real print on this page.
     // The shopper is being asked to buy cloth and imagine the garment; this is

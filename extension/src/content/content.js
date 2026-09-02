@@ -116,7 +116,8 @@ async function measure(product) {
   return {
     colours,
     located,
-    cutout: { imageData, mask, rect: located?.rect ?? null, located: Boolean(located) },
+    cutout: { imageData, mask, rect: located?.rect ?? null,
+              located: Boolean(located), sourceUrl: url },
   };
 }
 

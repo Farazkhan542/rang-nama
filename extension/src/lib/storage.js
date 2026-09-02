@@ -11,6 +11,30 @@ const KEY = "rangnama.profile.v1";
 
 /** @typedef {{skin: string, hair: string, heightCm: number, savedAt: number}} Profile */
 
+const PHOTO_KEY = "rangnama.photo.v1";
+
+/** The photo itself, kept only so the face swap has something to work from.
+ *
+ *  Stored as a data URL in chrome.storage.local: on this machine, in this
+ *  browser profile, and nowhere else. The colour path still discards the photo
+ *  after measuring it - this is a separate, explicit opt-in, and clearing it
+ *  is one button in the panel.
+ */
+export async function savePhoto(dataUrl) {
+  try { await chrome.storage.local.set({ [PHOTO_KEY]: dataUrl }); } catch { /* ignore */ }
+}
+
+export async function loadPhoto() {
+  try {
+    const got = await chrome.storage.local.get(PHOTO_KEY);
+    return got?.[PHOTO_KEY] ?? null;
+  } catch { return null; }
+}
+
+export async function clearPhoto() {
+  try { await chrome.storage.local.remove(PHOTO_KEY); } catch { /* ignore */ }
+}
+
 export const DEFAULT_PROFILE = {
   skin: "#b07a52",
   hair: "#1a1110",
