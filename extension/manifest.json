@@ -20,12 +20,29 @@
         "https://www.gulahmedshop.com/*"
       ],
       "js": [
-        "dist/content.js"
+        "dist/content.js",
+        "dist/spike.js"
       ],
       "run_at": "document_idle"
     }
   ],
   "action": {
     "default_title": "Rang Nama"
-  }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "vendor/wasm/*",
+        "vendor/models/*"
+      ],
+      "matches": [
+        "https://pk.khaadi.com/*",
+        "https://www.junaidjamshed.com/*",
+        "https://www.gulahmedshop.com/*"
+      ]
+    }
+  ]
 }

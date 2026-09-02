@@ -57,3 +57,7 @@ leffa_ood_results*
 # straight from a clone, without a build step.
 node_modules/
 extension/node_modules/
+
+# MediaPipe runtime and model. 16 MB of vendored binaries - fetched by
+# scripts/fetch_mediapipe.sh rather than committed.
+extension/vendor/
