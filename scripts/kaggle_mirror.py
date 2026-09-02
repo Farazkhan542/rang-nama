@@ -102,21 +102,54 @@ print("code loaded")
 # %%
 from PIL import Image
 
-PEOPLE = Path("/kaggle/input/me-photo") if IS_KAGGLE else Path("./me")
-photos = sorted(p for p in PEOPLE.glob("*") if p.suffix.lower() in {".jpg", ".jpeg", ".png"})
-assert photos, (
-    f"No photo found in {PEOPLE}. Add Input -> Upload -> a full-body photo, "
-    "dataset name 'me-photo'."
-)
+# Find the photo rather than assuming a path.
+#
+# Kaggle normalises dataset slugs, so a dataset you named "me-photo" may not
+# sit at /kaggle/input/me-photo, and the file may be nested a folder deep.
+# Hard-coding the path fails with "no photo found" while the photo is plainly
+# attached in the sidebar - which is exactly what happened with the code
+# dataset earlier. Search instead, and if nothing turns up, print what is
+# actually there.
+EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+ROOTS = [Path("/kaggle/input")] if IS_KAGGLE else [Path("./me")]
+
+photos = []
+for root in ROOTS:
+    if root.exists():
+        photos += [p for p in root.rglob("*") if p.suffix.lower() in EXTS]
+
+# Skip anything that came in with the code repo.
+photos = sorted(p for p in photos if "rang-nama" not in str(p) and "/code/" not in str(p))
+
+if not photos:
+    print("No photo found. Attached inputs:")
+    for root in ROOTS:
+        for d in sorted(root.glob("*")) if root.exists() else []:
+            inner = [f.name for f in list(d.rglob("*"))[:8]] if d.is_dir() else []
+            print(f"  {d.name}/  {inner}")
+    print()
+    print("Add Input -> Upload -> a full-body photo.")
+    print("If your phone saved it as .HEIC, convert to JPEG first - PIL cannot")
+    print("read HEIC without an extra package.")
+    raise SystemExit("no photo")
+
+print(f"found {len(photos)} image(s):")
+for p in photos[:6]:
+    print("  ", p)
 
 person = Image.open(photos[0]).convert("RGB")
-print(f"{photos[0].name}  {person.size[0]}x{person.size[1]}")
-
 w, h = person.size
+print()
+print(f"using {photos[0].name}  {w}x{h}")
+
 if h / w < 1.2:
-    print("\nWARNING: this looks wide for a full-body shot. A head-and-shoulders")
-    print("photo will not work - the model needs to see your torso and hips.")
-person.resize((person.width // 2, person.height // 2))
+    print()
+    print("WARNING: this looks wide for a full-body shot.")
+    print("A head-and-shoulders photo will not work - the try-on model needs to")
+    print("see your torso and hips to place a garment on them. Stop here and")
+    print("upload a standing, front-facing photo instead.")
+
+person.resize((person.width // 3, person.height // 3))
 
 # %% [markdown]
 # ## 3. The outfits
